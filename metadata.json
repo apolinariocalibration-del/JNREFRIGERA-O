@@ -1,0 +1,5 @@
+{
+  "name": "JN Refrigeração - Dashboard de Manutenção",
+  "description": "Um dashboard interativo para controle e análise de manutenções preventivas e corretivas, permitindo a importação de dados de planilhas para visualização em tempo real.",
+  "requestFramePermissions": []
+}
