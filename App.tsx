@@ -38,6 +38,7 @@ const App = () => {
     const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
     const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
     const [loginError, setLoginError] = useState<string | null>(null);
+    const [publishTrigger, setPublishTrigger] = useState(0);
 
     const handleLogin = (user: string, pass: string) => {
         if (user.trim() === 'JN' && pass.trim() === '123') {
@@ -77,46 +78,16 @@ const App = () => {
             setClientFilter(newRecordData.Cliente);
         }
 
-        setCurrentPage('dashboard');
+        setPublishTrigger(prev => prev + 1);
     };
 
     const handleAddComponentReplacement = async (newReplacement: ComponentReplacementRecord) => {
         const newComponentData = [...componentReplacements, newReplacement];
         await db.saveAllComponentReplacements(newComponentData);
         setComponentReplacements(newComponentData);
+        setPublishTrigger(prev => prev + 1);
     };
     
-    const handleImportData = async (
-      newMaintenanceRecords: Omit<MaintenanceRecord, 'ID' | 'Status'>[],
-      newComponentRecords: Omit<ComponentReplacementRecord, 'ID'>[]
-    ) => {
-        // Process Maintenance Records
-        let nextMaintenanceId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) + 1 : 1;
-        const processedMaintenanceRecords: MaintenanceRecord[] = newMaintenanceRecords.map(record => ({
-            ...record,
-            ID: nextMaintenanceId++,
-            Status: record.Pendencia.trim() ? 'Pendente' : 'Concluído',
-        }));
-        
-        // Process Component Records
-        let nextComponentId = componentReplacements.length > 0 ? Math.max(...componentReplacements.map(r => r.ID)) + 1 : 1;
-        const processedComponentRecords: ComponentReplacementRecord[] = newComponentRecords.map(record => ({
-            ...record,
-            ID: nextComponentId++,
-        }));
-        
-        const newMaintenanceData = [...processedMaintenanceRecords, ...maintenanceData];
-        const newComponentData = [...processedComponentRecords, ...componentReplacements];
-        
-        await db.saveAllMaintenanceRecords(newMaintenanceData);
-        await db.saveAllComponentReplacements(newComponentData);
-
-        setMaintenanceData(newMaintenanceData);
-        setComponentReplacements(newComponentData);
-    
-        alert(`${processedMaintenanceRecords.length} registros de manutenção e ${processedComponentRecords.length} substituições de componentes foram importados com sucesso!`);
-    };
-
 
     const handleUpdateRecord = async (id: number, updatedData: { Pendencia: string, OBS: string }) => {
         const newMaintenanceData = maintenanceData.map(record => {
@@ -312,9 +283,9 @@ const App = () => {
                 <AddRecordPage
                     onAddRecord={handleAddRecord}
                     onAddComponentReplacement={handleAddComponentReplacement}
-                    onImportData={handleImportData}
                     componentReplacements={componentReplacements}
                     maintenanceData={maintenanceData}
+                    publishTrigger={publishTrigger}
                 />
             )}
         </main>

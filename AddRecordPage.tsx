@@ -1,8 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord, ComponentType } from './types';
 import { CLIENT_LIST, COMPONENT_LIST } from './constants';
-
-declare var XLSX: any;
 
 // Helper functions for technician list
 const techNameMap = {
@@ -28,7 +26,65 @@ const getUniqueTechnicians = (records: MaintenanceRecord[]): string[] => {
     return Array.from(techSet).sort();
 };
 
-const AddRecordSection = ({ onAdd, allTechnicians }) => {
+const PublishModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    fileContent: string;
+}> = ({ isOpen, onClose, fileContent }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(fileContent);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (!isOpen) return null;
+
+    // INSTRUÇÃO: Substitua pelo link do seu repositório
+    const GITHUB_EDIT_URL = "https://github.com/SEU-USUARIO/SEU-REPOSITORIO/edit/main/src/constants.ts";
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-3xl border border-slate-700">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-semibold text-white">Publicar Alterações no GitHub</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">&times;</button>
+                </div>
+                <div className="space-y-4 text-slate-300">
+                    <p>Siga os passos abaixo para atualizar os dados do site de forma segura:</p>
+                    <div className="bg-slate-900/50 p-4 rounded-md space-y-3">
+                        <p><strong className="text-white">Passo 1: Copie o código gerado.</strong> O código abaixo contém todos os registros atuais.</p>
+                        <p><strong className="text-white">Passo 2: Abra o GitHub.</strong> Clique no link para ir diretamente à página de edição do arquivo.</p>
+                        <p><strong className="text-white">Passo 3: Cole e salve.</strong> No GitHub, apague todo o conteúdo antigo, cole o novo código e clique em "Commit changes".</p>
+                    </div>
+                     <textarea
+                        readOnly
+                        className="w-full h-48 bg-slate-900 border border-slate-600 rounded-md p-2 text-xs font-mono text-slate-400 focus:ring-0 focus:outline-none"
+                        value={fileContent}
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <button onClick={handleCopy} className={`w-full px-5 py-3 rounded-md font-semibold text-white transition-colors flex items-center justify-center gap-2 ${copied ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-500'}`}>
+                            {copied ? 'Copiado com Sucesso!' : 'Copiar Código'}
+                        </button>
+                        <a href={GITHUB_EDIT_URL} target="_blank" rel="noopener noreferrer" className="w-full px-5 py-3 bg-cyan-600 hover:bg-cyan-500 rounded-md font-semibold text-white transition-colors flex items-center justify-center gap-2 text-center">
+                           Abrir GitHub
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        </a>
+                    </div>
+                     <p className="text-xs text-slate-500 text-center pt-2">Lembre-se de substituir `SEU-USUARIO` e `SEU-REPOSITORIO` no link do GitHub se necessário.</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface AddRecordSectionProps {
+    onAdd: (record: Omit<MaintenanceRecord, 'ID' | 'Status'>) => void;
+    allTechnicians: string[];
+}
+
+const AddRecordSection: React.FC<AddRecordSectionProps> = ({ onAdd, allTechnicians }) => {
     const initialFormState: Omit<MaintenanceRecord, 'ID' | 'Status'> = {
         Data: new Date(),
         HoraInicio: '',
@@ -69,7 +125,6 @@ const AddRecordSection = ({ onAdd, allTechnicians }) => {
         e.preventDefault();
         onAdd(formData);
         setFormData(initialFormState); // Reset form
-        alert('Registro de manutenção adicionado com sucesso!');
     };
 
     return (
@@ -133,12 +188,18 @@ const AddRecordSection = ({ onAdd, allTechnicians }) => {
     );
 };
 
+interface ComponentReplacementSectionProps {
+    records: ComponentReplacementRecord[];
+    onAdd: (record: ComponentReplacementRecord) => void;
+    clients: string[];
+    components: ComponentType[];
+}
 
-const ComponentReplacementSection = ({ records, onAdd, clients, components }) => {
+const ComponentReplacementSection: React.FC<ComponentReplacementSectionProps> = ({ records, onAdd, clients, components }) => {
     const [formData, setFormData] = useState({
         Data: new Date().toISOString().substring(0, 10),
         Cliente: '',
-        Componente: components[0],
+        Componente: components[0] as ComponentType,
         OBS: ''
     });
 
@@ -155,16 +216,16 @@ const ComponentReplacementSection = ({ records, onAdd, clients, components }) =>
         }
         onAdd({
             ...formData,
-            Data: new Date(formData.Data),
+            Data: new Date(formData.Data + 'T00:00:00'), // Parse as local time to avoid timezone issues
+            Componente: formData.Componente as ComponentType,
             ID: Date.now() // Simple unique ID
         });
         setFormData({ // Reset form
             Data: new Date().toISOString().substring(0, 10),
             Cliente: '',
-            Componente: components[0],
+            Componente: components[0] as ComponentType,
             OBS: ''
         });
-        alert('Substituição de componente registrada com sucesso!');
     };
     
     return (
@@ -209,7 +270,7 @@ const ComponentReplacementSection = ({ records, onAdd, clients, components }) =>
                         <tbody>
                             {records.length > 0 ? records.slice().reverse().map(rec => (
                                 <tr key={rec.ID} className="bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50">
-                                    <td className="px-4 py-3">{rec.Data.toLocaleDateString()}</td>
+                                    <td className="px-4 py-3">{new Date(rec.Data).toLocaleDateString('pt-BR')}</td>
                                     <td className="px-4 py-3">{rec.Cliente}</td>
                                     <td className="px-4 py-3 font-medium text-white">{rec.Componente}</td>
                                 </tr>
@@ -224,125 +285,80 @@ const ComponentReplacementSection = ({ records, onAdd, clients, components }) =>
     );
 };
 
-const parseExcelDate = (excelDate: number): Date => {
-    // Converts Excel serial date number to a JS Date object, assuming UTC.
-    return new Date(Date.UTC(0, 0, excelDate - 1));
-};
-
-const ImportSection = ({ onImport }) => {
-    const [fileName, setFileName] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
-
-    const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setFileName(file.name);
-        setIsProcessing(true);
-
-        try {
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            
-            const newMaintenanceRecords: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = [];
-            const newComponentRecords: Omit<ComponentReplacementRecord, 'ID'>[] = [];
-
-            // Process Maintenance Sheet
-            const maintenanceSheet = workbook.Sheets['Manutenções'];
-            if (maintenanceSheet) {
-                const records = XLSX.utils.sheet_to_json(maintenanceSheet);
-                records.forEach((row: any) => {
-                    newMaintenanceRecords.push({
-                        Data: typeof row.Data === 'number' ? parseExcelDate(row.Data) : new Date(row.Data),
-                        HoraInicio: row.HoraInicio || '',
-                        HoraFim: row.HoraFim || '',
-                        Serviço: row.Serviço || 'Corretiva',
-                        'Especificação da Manutenção': row['Especificação da Manutenção'] || '',
-                        Equipamento: row.Equipamento || '',
-                        'Especificação do Equipamento': row['Especificação do Equipamento'] || '',
-                        Equipe: row.Equipe || '',
-                        Local: row.Local || '',
-                        Cliente: row.Cliente || '',
-                        OBS: row.OBS || '',
-                        Pendencia: row.Pendencia || '',
-                        Gás: row.Gás || '',
-                    });
-                });
-            }
-
-            // Process Components Sheet
-            const componentsSheet = workbook.Sheets['Componentes'];
-            if (componentsSheet) {
-                const records = XLSX.utils.sheet_to_json(componentsSheet);
-                records.forEach((row: any) => {
-                    newComponentRecords.push({
-                        Data: typeof row.Data === 'number' ? parseExcelDate(row.Data) : new Date(row.Data),
-                        Cliente: row.Cliente || '',
-                        Componente: row.Componente || '',
-                        OBS: row.OBS || '',
-                    });
-                });
-            }
-
-            onImport(newMaintenanceRecords, newComponentRecords);
-
-        } catch (error) {
-            console.error("Erro ao processar a planilha:", error);
-            alert("Ocorreu um erro ao processar a planilha. Verifique o formato e o console para mais detalhes.");
-        } finally {
-            setIsProcessing(false);
-            setFileName('');
-            // Reset file input to allow re-uploading the same file
-            if (e.target) e.target.value = '';
-        }
-    };
-    
-    return (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Importar Dados de Planilha</h2>
-            <p className="text-slate-400 mb-4 text-sm">
-                Importe registros de um arquivo Excel (.xlsx).
-                O arquivo deve conter abas chamadas "Manutenções" e/ou "Componentes", com colunas correspondentes aos campos do formulário.
-            </p>
-            <div className="flex items-center justify-center w-full">
-                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-700/50 hover:bg-slate-700 transition">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-4 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                        </svg>
-                        {isProcessing ? (
-                            <p className="text-sm text-slate-400"><span className="font-semibold">Processando...</span></p>
-                        ) : fileName ? (
-                            <p className="text-sm text-slate-400"><span className="font-semibold">Arquivo:</span> {fileName}</p>
-                        ) : (
-                            <p className="mb-2 text-sm text-slate-400"><span className="font-semibold">Clique para carregar</span> ou arraste e solte</p>
-                        )}
-                        <p className="text-xs text-slate-500">XLSX, XLS, ou CSV</p>
-                    </div>
-                    <input id="dropzone-file" type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFile} disabled={isProcessing} />
-                </label>
-            </div> 
-        </div>
-    );
-};
-
 interface AddRecordPageProps {
     onAddRecord: (record: Omit<MaintenanceRecord, 'ID' | 'Status'>) => void;
     onAddComponentReplacement: (record: ComponentReplacementRecord) => void;
-    onImportData: (
-        newMaintenanceRecords: Omit<MaintenanceRecord, 'ID' | 'Status'>[],
-        newComponentRecords: Omit<ComponentReplacementRecord, 'ID'>[]
-    ) => void;
     componentReplacements: ComponentReplacementRecord[];
     maintenanceData: MaintenanceRecord[];
+    publishTrigger: number;
 }
 
 
-const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddComponentReplacement, componentReplacements, maintenanceData, onImportData }) => {
+const AddRecordPage: React.FC<AddRecordPageProps> = ({ 
+    onAddRecord, 
+    onAddComponentReplacement, 
+    componentReplacements, 
+    maintenanceData, 
+    publishTrigger 
+}) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [fileContent, setFileContent] = useState('');
     const allTechnicians = useMemo(() => getUniqueTechnicians(maintenanceData), [maintenanceData]);
+
+    const handleGenerateDataFile = () => {
+        const dataToString = (data: any[]) => {
+            return JSON.stringify(data, (key, value) => {
+                if (key === 'Data' && value) return `__DATE__${new Date(value).toISOString()}__DATE__`;
+                if (key === 'Status') return undefined; 
+                return value;
+            }, 2).replace(/"__DATE__(.*?)__DATE__"/g, "new Date('$1')");
+        };
+
+        const content = `import { MaintenanceRecord, ComponentType, ComponentReplacementRecord } from './types';
+
+// ATENÇÃO: Este arquivo é gerado automaticamente.
+// Para atualizar, use a ferramenta de publicação no dashboard de administrador.
+
+// Lista de Clientes (pode ser editada manualmente se necessário)
+export const CLIENT_LIST = [
+  'Imperatiz CD', 'Palineli', 'Ester de Lima', 'Snowfrut', 'Dupain',
+  'Frutaria SP', 'JJL', 'Pastelaria Maria de Discel', 'Casa Carne', 'Ffood',
+  'Bolinho do Porto', 'Dolma', 'Bar Pompeu', 'Faculdade Arnaldo', 'CCPR',
+  'Minas Rural', 'Celia Soltto', 'Pilanar', 'Agua branca', 'BH Shopping',
+];
+
+// Lista de Componentes (pode ser editada manualmente se necessário)
+export const COMPONENT_LIST: ComponentType[] = [
+  'Compressor', 'Contatora', 'Disjuntor', 'Microcontrolador', 'Microventilador',
+  'Pressostato de Alta Pressão', 'Relé', 'Relé de Contato de Contatora',
+  'Relé Falta de Fase', 'Resistência de Degelo', 'Resistência do Evaporador',
+  'Tubulação', 'Válvula de Expansão Eletrônica', 'Ventilador do Condensador',
+  'Ventilador do Evaporador'
+];
+
+// DADOS DE SUBSTITUIÇÃO DE COMPONENTES ATUALIZADOS
+export const MOCK_COMPONENT_REPLACEMENTS: ComponentReplacementRecord[] = ${dataToString(componentReplacements.map(({ ID, ...rest }) => rest))};
+
+// DADOS DE MANUTENÇÃO ATUALIZADOS
+export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToString(maintenanceData.map(({ ID, Status, ...rest }) => rest))};
+`.trim();
+
+        setFileContent(content);
+        setIsModalOpen(true);
+    };
+    
+    const didMountRef = useRef(false);
+
+    useEffect(() => {
+        if (didMountRef.current) {
+            handleGenerateDataFile();
+        } else {
+            didMountRef.current = true;
+        }
+    }, [publishTrigger]);
+
     return (
-        <div className="space-y-6">
-            <ImportSection onImport={onImportData} />
+        <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 <div className="lg:col-span-3">
                     <AddRecordSection onAdd={onAddRecord} allTechnicians={allTechnicians} />
@@ -356,6 +372,11 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
                     />
                 </div>
             </div>
+            <PublishModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                fileContent={fileContent}
+            />
         </div>
     );
 };

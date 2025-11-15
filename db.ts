@@ -8,11 +8,22 @@ const COMPONENTS_KEY = 'jnRefrigeracaoComponentReplacements';
 export const initializeDB = () => {
     if (!localStorage.getItem(MAINTENANCE_KEY)) {
         console.log("Initializing maintenance data from mocks...");
-        localStorage.setItem(MAINTENANCE_KEY, JSON.stringify(MOCK_DATA));
+        // Process mock data to add IDs and Status, similar to how new records are handled.
+        const processedMaintenanceData = MOCK_DATA.map((record, index) => ({
+            ...record,
+            ID: index + 1, // Assign a simple sequential ID
+            Status: record.Pendencia.trim() ? 'Pendente' : 'Concluído',
+        }));
+        localStorage.setItem(MAINTENANCE_KEY, JSON.stringify(processedMaintenanceData));
     }
     if (!localStorage.getItem(COMPONENTS_KEY)) {
         console.log("Initializing component replacement data from mocks...");
-        localStorage.setItem(COMPONENTS_KEY, JSON.stringify(MOCK_COMPONENT_REPLACEMENTS));
+        // Add sequential IDs to component replacements as well for consistency
+        const processedComponentData = MOCK_COMPONENT_REPLACEMENTS.map((record, index) => ({
+            ...record,
+            ID: index + 1,
+        }));
+        localStorage.setItem(COMPONENTS_KEY, JSON.stringify(processedComponentData));
     }
 };
 

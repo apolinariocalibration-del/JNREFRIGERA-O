@@ -5,7 +5,8 @@ declare var Chart: any;
 declare var ChartDataLabels: any;
 
 // Custom hook for Chart.js
-const useChart = (chartRef, chartConfig) => {
+// Using 'any' for chartConfig is a pragmatic choice given its complexity.
+const useChart = (chartRef: React.RefObject<HTMLCanvasElement>, chartConfig: any) => {
     useEffect(() => {
         if (!chartRef.current) return;
         
@@ -53,7 +54,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
             'Gean': 'Jean',
             'Wellington': 'Weliton'
         };
-        const normalizeTechName = (name) => techNameMap[name.trim()] || name.trim();
+        const normalizeTechName = (name: string) => techNameMap[name.trim()] || name.trim();
 
         // Service type counts should be based on filtered data
         const serviceTypeCounts = maintenanceData.reduce((acc, record) => {
@@ -105,7 +106,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         const dailyData = sortedDates.map(date => dailyServiceCounts[date]);
 
         // --- Data aggregation for Duration by Client chart ---
-        const calculateDuration = (start, end) => {
+        const calculateDuration = (start: string, end: string) => {
             if (!start || !end) return 0;
             const [startHour, startMinute] = start.split(':').map(Number);
             const [endHour, endMinute] = end.split(':').map(Number);
@@ -137,10 +138,9 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         }, {} as Record<string, Record<string, number>>);
         
         const sortedClients = Object.keys(aggregatedDurationData).sort((a, b) => {
-            // FIX: Cast reduce value to number, as `Object.values` may be inferred as `unknown[]`,
-            // causing errors in the sum and subsequent subtraction.
-            const totalA = Object.values(aggregatedDurationData[a]).reduce((sum, d) => sum + (d as number), 0);
-            const totalB = Object.values(aggregatedDurationData[b]).reduce((sum, d) => sum + (d as number), 0);
+            // FIX: Cast `Object.values` result to number[] to ensure correct type inference in `reduce`.
+            const totalA = (Object.values(aggregatedDurationData[a]) as number[]).reduce((sum, d) => sum + d, 0);
+            const totalB = (Object.values(aggregatedDurationData[b]) as number[]).reduce((sum, d) => sum + d, 0);
             return totalB - totalA;
         });
 
