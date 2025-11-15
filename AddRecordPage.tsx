@@ -339,7 +339,6 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         setPublishStatus('publishing');
         setPublishMessage('Publicando alterações...');
 
-        // Fetch the absolute latest data directly from localStorage to avoid race conditions
         const latestMaintenanceData = await db.getMaintenanceRecords();
         const latestComponentData = await db.getComponentReplacements();
 
@@ -364,14 +363,19 @@ export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToStr
 `.trim();
 
         try {
-            // 1. Get the current file SHA
+            let currentSha: string | undefined;
+
             const getFileResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
                 headers: { 'Authorization': `token ${githubConfig.token}` }
             });
-            if (!getFileResponse.ok) throw new Error(`Falha ao buscar arquivo do GitHub: ${getFileResponse.statusText}`);
-            const fileData = await getFileResponse.json();
 
-            // 2. Update the file
+            if (getFileResponse.ok) {
+                const fileData = await getFileResponse.json();
+                currentSha = fileData.sha;
+            } else if (getFileResponse.status !== 404) {
+                throw new Error(`Falha ao verificar arquivo no GitHub: ${getFileResponse.statusText}`);
+            }
+
             const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
                 method: 'PUT',
                 headers: {
@@ -380,12 +384,15 @@ export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToStr
                 },
                 body: JSON.stringify({
                     message: `[BOT] Atualiza dados em ${new Date().toISOString()}`,
-                    content: btoa(unescape(encodeURIComponent(content))), // Base64 encode
-                    sha: fileData.sha
+                    content: btoa(unescape(encodeURIComponent(content))),
+                    sha: currentSha
                 })
             });
 
-            if (!updateResponse.ok) throw new Error(`Falha ao publicar no GitHub: ${updateResponse.statusText}`);
+            if (!updateResponse.ok) {
+                 const errorBody = await updateResponse.json().catch(() => ({ message: updateResponse.statusText }));
+                 throw new Error(`Falha ao publicar no GitHub: ${errorBody.message || updateResponse.statusText}`);
+            }
 
             setPublishStatus('success');
             setPublishMessage('Publicado com sucesso!');
