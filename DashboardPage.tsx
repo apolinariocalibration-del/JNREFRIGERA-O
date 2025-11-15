@@ -3,6 +3,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
 import { CLIENT_LIST } from './constants';
 
+declare var XLSX: any;
+
 interface EditRecordModalProps {
     record: MaintenanceRecord;
     onUpdate: (id: number, updatedData: { Pendencia: string; OBS: string }) => void;
@@ -316,6 +318,43 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         { value: '9', label: 'Setembro' }, { value: '10', label: 'Outubro' },
         { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' }
     ];
+    
+    const handleExport = () => {
+        const maintenanceSheetData = filteredData.map(record => ({
+            'ID': record.ID,
+            'Data': new Date(record.Data).toLocaleDateString('pt-BR'),
+            'Status': record.Status,
+            'Cliente': record.Cliente,
+            'Serviço': record.Serviço,
+            'Especificação da Manutenção': record['Especificação da Manutenção'],
+            'Equipe': (record.Equipe || '').replace(/\\|\//g, ', '),
+            'Pendência': record.Pendencia,
+            'OBS': record.OBS,
+            'Gás': record.Gás,
+            'Local': record.Local,
+            'Equipamento': record.Equipamento,
+            'Especificação do Equipamento': record['Especificação do Equipamento'],
+            'Hora Início': record.HoraInicio,
+            'Hora Fim': record.HoraFim,
+        }));
+    
+        const componentSheetData = componentReplacements.map(record => ({
+            'ID': record.ID,
+            'Data': new Date(record.Data).toLocaleDateString('pt-BR'),
+            'Cliente': record.Cliente,
+            'Componente': record.Componente,
+            'OBS': record.OBS,
+        }));
+    
+        const maintenanceWS = XLSX.utils.json_to_sheet(maintenanceSheetData);
+        const componentWS = XLSX.utils.json_to_sheet(componentSheetData);
+    
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, maintenanceWS, "Manutenções (Filtrado)");
+        XLSX.utils.book_append_sheet(wb, componentWS, "Componentes (Filtrado)");
+    
+        XLSX.writeFile(wb, "Relatorio_Filtrado_JN_Refrigeracao.xlsx");
+    };
 
     return (
         <>
@@ -326,11 +365,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 <KpiCard title="Componentes Substituídos" value={kpiData.replacedComponents} icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-green-400"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.695v-2.695A8.25 8.25 0 005.68 9.348v2.695l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183" /></svg>} />
             </div>
 
-            <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg">
                 <div className="p-6">
                     <h2 className="text-xl font-semibold text-white">Registros de Manutenção</h2>
                     <p className="text-slate-400 mt-1">Visualize e gerencie todos os registros de manutenção.</p>
-                    <div className="mt-4 flex flex-col sm:flex-row flex-wrap gap-4">
+                    <div className="mt-4 flex flex-col sm:flex-row flex-wrap gap-4 items-end">
                         <div>
                             <label htmlFor="yearFilter" className="block text-sm font-medium text-slate-400 mb-1">Filtrar por Ano</label>
                             <select id="yearFilter" name="yearFilter" value={yearFilter} onChange={handleYearFilterChange} className="w-full sm:w-auto bg-slate-700 border border-slate-600 rounded-md p-2 text-white focus:ring-cyan-500 focus:border-cyan-500 transition">
@@ -378,73 +417,71 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                 <option value="Pendente">Pendente</option>
                             </select>
                         </div>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
+                            <button
+                                onClick={handleExport}
+                                className="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white font-semibold py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L6.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                </svg>
+                                Exportar Excel
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-slate-400">
-                        <thead className="text-xs text-slate-300 uppercase bg-slate-700/50">
-                            <tr>
-                                <th scope="col" className="px-6 py-3">ID</th>
-                                <th scope="col" className="px-6 py-3">Status</th>
-                                <th scope="col" className="px-6 py-3">Cliente</th>
-                                <th scope="col" className="px-6 py-3">Data</th>
-                                <th scope="col" className="px-6 py-3">Serviço</th>
-                                <th scope="col" className="px-6 py-3">Equipe</th>
-                                <th scope="col" className="px-6 py-3">Pendência</th>
-                                <th scope="col" className="px-6 py-3">Observações</th>
-                                <th scope="col" className="px-6 py-3">Componentes substituídos</th>
-                                <th scope="col" className="px-6 py-3">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredData.slice(0, visibleRecordsCount).map(record => {
-                                const relatedReplacements = allComponentReplacements.filter(
-                                    rep => rep.Cliente === record.Cliente && 
-                                           new Date(rep.Data).toDateString() === new Date(record.Data).toDateString()
-                                );
-                                const replacementText = relatedReplacements.length > 0 
-                                    ? relatedReplacements.map(r => r.Componente).join(', ') 
-                                    : '-';
-
-                                return (
-                                <tr key={record.ID} className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors duration-1000 ${record.ID === newlyAddedRecordId ? 'bg-cyan-900' : ''}`}>
-                                    <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${record.Status === 'Concluído' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                            {record.Status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">{record.Cliente}</td>
-                                    <td className="px-6 py-4">{new Date(record.Data).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4">{record.Serviço}</td>
-                                    <td className="px-6 py-4">{record.Equipe.replace(/\\|\//g, ', ')}</td>
-                                    <td className="px-6 py-4 max-w-xs truncate" title={record.Pendencia}>{record.Pendencia || '-'}</td>
-                                    <td className="px-6 py-4 max-w-xs truncate" title={record.OBS}>{record.OBS || '-'}</td>
-                                    <td className="px-6 py-4 max-w-xs truncate" title={replacementText}>{replacementText}</td>
-                                    <td className="px-6 py-4">
-                                        {userRole === 'admin' && (
-                                            <div className="flex items-center gap-4">
-                                                <button onClick={() => onOpenFullEditModal(record)} className="font-medium text-cyan-500 hover:underline">
-                                                    Editar
-                                                </button>
-                                                {record.Status === 'Pendente' && (
-                                                    <button onClick={() => onOpenEditModal(record)} className="font-medium text-amber-500 hover:underline">
-                                                        Concluir
-                                                    </button>
+                
+                <div className="p-6">
+                    <div className="bg-slate-900/50 rounded-lg overflow-hidden border border-slate-700">
+                        <div className="overflow-auto max-h-[600px]">
+                             <table className="w-full text-sm text-left text-slate-400 min-w-[1200px]">
+                                <thead className="text-xs text-slate-300 uppercase bg-slate-700 sticky top-0 z-10">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3">ID</th>
+                                        <th scope="col" className="px-6 py-3">Data</th>
+                                        <th scope="col" className="px-6 py-3">Status</th>
+                                        <th scope="col" className="px-6 py-3">Cliente</th>
+                                        <th scope="col" className="px-6 py-3">Início</th>
+                                        <th scope="col" className="px-6 py-3">Fim</th>
+                                        <th scope="col" className="px-6 py-3">Serviço</th>
+                                        <th scope="col" className="px-6 py-3">Pendência</th>
+                                        <th scope="col" className="px-6 py-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredData.slice(0, visibleRecordsCount).map(record => (
+                                        <tr key={record.ID} className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
+                                            <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">{new Date(record.Data).toLocaleDateString('pt-BR')}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${record.Status === 'Concluído' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                                    {record.Status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">{record.Cliente}</td>
+                                            <td className="px-6 py-4">{record.HoraInicio || '-'}</td>
+                                            <td className="px-6 py-4">{record.HoraFim || '-'}</td>
+                                            <td className="px-6 py-4">{record.Serviço}</td>
+                                            <td className="px-6 py-4 max-w-xs truncate" title={record.Pendencia}>{record.Pendencia || '-'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {userRole === 'admin' && (
+                                                    <div className="flex items-center gap-4">
+                                                        <button onClick={() => onOpenFullEditModal(record)} className="font-medium text-cyan-500 hover:underline">Editar</button>
+                                                        {record.Status === 'Pendente' && <button onClick={() => onOpenEditModal(record)} className="font-medium text-amber-500 hover:underline">Concluir</button>}
+                                                        <button onClick={() => handleOpenDeleteModal(record)} className="font-medium text-red-500 hover:underline">Excluir</button>
+                                                    </div>
                                                 )}
-                                                <button onClick={() => handleOpenDeleteModal(record)} className="font-medium text-red-500 hover:underline">
-                                                    Excluir
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            )})}
-                        </tbody>
-                    </table>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
+
                 {visibleRecordsCount < filteredData.length && (
-                    <div className="p-4 flex justify-center">
+                    <div className="p-4 flex justify-center border-t border-slate-700">
                         <button onClick={() => setVisibleRecordsCount(prev => prev + 20)} className="px-5 py-2 text-sm font-semibold text-cyan-400 hover:text-white hover:bg-cyan-600/50 rounded-lg transition">
                             Ver Mais
                         </button>

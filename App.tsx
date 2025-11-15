@@ -115,6 +115,32 @@ const App = () => {
     const handleAddComponentReplacement = (newReplacement: ComponentReplacementRecord) => {
         setComponentReplacements(prev => [...prev, newReplacement]);
     };
+    
+    const handleImportData = (
+      newMaintenanceRecords: Omit<MaintenanceRecord, 'ID' | 'Status'>[],
+      newComponentRecords: Omit<ComponentReplacementRecord, 'ID'>[]
+    ) => {
+        // Process Maintenance Records
+        let nextMaintenanceId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) + 1 : 1;
+        const processedMaintenanceRecords: MaintenanceRecord[] = newMaintenanceRecords.map(record => ({
+            ...record,
+            ID: nextMaintenanceId++,
+            Status: record.Pendencia.trim() ? 'Pendente' : 'Concluído',
+        }));
+        
+        // Process Component Records
+        let nextComponentId = componentReplacements.length > 0 ? Math.max(...componentReplacements.map(r => r.ID)) + 1 : 1;
+        const processedComponentRecords: ComponentReplacementRecord[] = newComponentRecords.map(record => ({
+            ...record,
+            ID: nextComponentId++,
+        }));
+        
+        setMaintenanceData(prev => [...processedMaintenanceRecords, ...prev]);
+        setComponentReplacements(prev => [...processedComponentRecords, ...prev]);
+    
+        alert(`${processedMaintenanceRecords.length} registros de manutenção e ${processedComponentRecords.length} substituições de componentes foram importados com sucesso!`);
+    };
+
 
     const handleUpdateRecord = (id: number, updatedData: { Pendencia: string, OBS: string }) => {
         setMaintenanceData(prevData =>
@@ -297,6 +323,7 @@ const App = () => {
                 <AddRecordPage
                     onAddRecord={handleAddRecord}
                     onAddComponentReplacement={handleAddComponentReplacement}
+                    onImportData={handleImportData}
                     componentReplacements={componentReplacements}
                     maintenanceData={maintenanceData}
                 />

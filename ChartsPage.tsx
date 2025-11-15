@@ -1,6 +1,3 @@
-
-
-
 import React, { useRef, useEffect, useMemo } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
 
@@ -47,6 +44,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
     const technicianActivityChartRef = useRef(null);
     const componentReplacementChartRef = useRef(null);
     const dailyServiceChartRef = useRef(null);
+    const durationByClientChartRef = useRef(null);
 
     const chartData = useMemo(() => {
         const techNameMap = {
@@ -106,8 +104,123 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         });
         const dailyData = sortedDates.map(date => dailyServiceCounts[date]);
 
-        return { serviceTypeCounts, technicianActivityCounts, componentReplacementCounts, dailyLabels, dailyData };
+        // --- Data aggregation for Duration by Client chart ---
+        const calculateDuration = (start, end) => {
+            if (!start || !end) return 0;
+            const [startHour, startMinute] = start.split(':').map(Number);
+            const [endHour, endMinute] = end.split(':').map(Number);
+            // Use a consistent date for time calculation
+            const startDate = new Date(1970, 0, 1, startHour, startMinute, 0);
+            const endDate = new Date(1970, 0, 1, endHour, endMinute, 0);
+            
+            if (endDate < startDate) { // Handles overnight service
+                endDate.setDate(endDate.getDate() + 1);
+            }
+            
+            const diffMs = endDate.getTime() - startDate.getTime();
+            return diffMs / (1000 * 60 * 60); // convert to hours
+        };
+
+        // FIX: Provide a type for the accumulator to avoid implicit 'any' and related errors.
+        const aggregatedDurationData = maintenanceData.reduce((acc: Record<string, Record<string, number>>, record) => {
+            const client = record.Cliente;
+            const service = record.Serviço;
+            const duration = calculateDuration(record.HoraInicio, record.HoraFim);
+
+            if (duration > 0) {
+                if (!acc[client]) {
+                    acc[client] = {};
+                }
+                acc[client][service] = (acc[client][service] || 0) + duration;
+            }
+            return acc;
+        }, {} as Record<string, Record<string, number>>);
+        
+        const sortedClients = Object.keys(aggregatedDurationData).sort((a, b) => {
+            const totalA = Object.values(aggregatedDurationData[a]).reduce((sum, d) => sum + d, 0);
+            const totalB = Object.values(aggregatedDurationData[b]).reduce((sum, d) => sum + d, 0);
+            return totalB - totalA;
+        });
+
+        const serviceTypes = [...new Set(maintenanceData.map(r => r.Serviço))];
+        // FIX: Add an index signature to allow indexing with a generic string 'service'.
+        const serviceColors: Record<string, string> = {
+            'Corretiva': '#ef4444',
+            'Preventiva': '#3b82f6',
+            'Corretiva/Preventiva': '#f97316',
+            'Obra/Instalação': '#8b5cf6',
+        };
+
+        const durationDatasets = serviceTypes.map(service => ({
+            label: service,
+            data: sortedClients.map(client => aggregatedDurationData[client][service] || 0),
+            backgroundColor: serviceColors[service] || '#64748b',
+        }));
+
+        const durationByClientData = {
+            labels: sortedClients,
+            datasets: durationDatasets,
+        };
+
+        return { serviceTypeCounts, technicianActivityCounts, componentReplacementCounts, dailyLabels, dailyData, durationByClientData };
     }, [maintenanceData, allMaintenanceData, componentReplacements]);
+
+    useChart(durationByClientChartRef, {
+        type: 'bar',
+        data: chartData.durationByClientData,
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Duração do Atendimento por Cliente (Horas)',
+                    color: '#cbd5e1',
+                    font: { size: 16 },
+                    padding: { bottom: 20 }
+                },
+                legend: {
+                    position: 'top',
+                    labels: { color: '#cbd5e1' }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.x !== null) {
+                                label += context.parsed.x.toFixed(2) + 'h';
+                            }
+                            return label;
+                        }
+                    }
+                },
+                 datalabels: {
+                    display: false,
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    ticks: { color: '#94a3b8' },
+                    grid: { color: '#334155' },
+                    title: {
+                        display: true,
+                        text: 'Total de Horas',
+                        color: '#94a3b8'
+                    }
+                },
+                y: {
+                    stacked: true,
+                    ticks: { color: '#94a3b8' },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
 
     useChart(dailyServiceChartRef, {
         type: 'line',
@@ -312,7 +425,10 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
                     </div>
                 )}
             </div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg mb-8">
+                <div className="h-[500px]"><canvas ref={durationByClientChartRef}></canvas></div>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
                     <div className="h-96"><canvas ref={dailyServiceChartRef}></canvas></div>
                 </div>
