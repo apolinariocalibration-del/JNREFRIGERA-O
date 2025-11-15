@@ -385,9 +385,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                         <thead className="text-xs text-slate-300 uppercase bg-slate-700/50">
                             <tr>
                                 <th scope="col" className="px-6 py-3">ID</th>
-                                <th scope="col" className="px-6 py-3">Data</th>
-                                <th scope="col" className="px-6 py-3">Cliente</th>
                                 <th scope="col" className="px-6 py-3">Status</th>
+                                <th scope="col" className="px-6 py-3">Cliente</th>
+                                <th scope="col" className="px-6 py-3">Data</th>
                                 <th scope="col" className="px-6 py-3">Serviço</th>
                                 <th scope="col" className="px-6 py-3">Equipe</th>
                                 <th scope="col" className="px-6 py-3">Pendência</th>
@@ -409,13 +409,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                 return (
                                 <tr key={record.ID} className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors duration-1000 ${record.ID === newlyAddedRecordId ? 'bg-cyan-900' : ''}`}>
                                     <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
-                                    <td className="px-6 py-4">{new Date(record.Data).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4">{record.Cliente}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${record.Status === 'Concluído' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
                                             {record.Status}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4">{record.Cliente}</td>
+                                    <td className="px-6 py-4">{new Date(record.Data).toLocaleDateString()}</td>
                                     <td className="px-6 py-4">{record.Serviço}</td>
                                     <td className="px-6 py-4">{record.Equipe.replace(/\\|\//g, ', ')}</td>
                                     <td className="px-6 py-4 max-w-xs truncate" title={record.Pendencia}>{record.Pendencia || '-'}</td>

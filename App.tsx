@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
 import { MOCK_DATA, MOCK_COMPONENT_REPLACEMENTS } from './constants';
 import DashboardPage from './DashboardPage';
@@ -6,14 +7,61 @@ import AddRecordPage from './AddRecordPage';
 import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
 
+const MAINTENANCE_DATA_KEY = 'jnRefrigeracaoMaintenanceData';
+const COMPONENT_REPLACEMENTS_KEY = 'jnRefrigeracaoComponentReplacements';
+
 // Main App Component
 const App = () => {
-    const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>(MOCK_DATA);
+    const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>(() => {
+        try {
+            const savedData = localStorage.getItem(MAINTENANCE_DATA_KEY);
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                // Convert date strings back to Date objects
+                return parsedData.map((record: MaintenanceRecord) => ({...record, Data: new Date(record.Data)}));
+            }
+        } catch (error) {
+            console.error("Failed to load maintenance data from localStorage", error);
+        }
+        return MOCK_DATA;
+    });
+
+    const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>(() => {
+        try {
+            const savedData = localStorage.getItem(COMPONENT_REPLACEMENTS_KEY);
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                // Convert date strings back to Date objects
+                return parsedData.map((record: ComponentReplacementRecord) => ({...record, Data: new Date(record.Data)}));
+            }
+        } catch (error) {
+            console.error("Failed to load component replacements from localStorage", error);
+        }
+        return MOCK_COMPONENT_REPLACEMENTS;
+    });
+
+    // Effect to save maintenance data to localStorage whenever it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(MAINTENANCE_DATA_KEY, JSON.stringify(maintenanceData));
+        } catch (error) {
+            console.error("Failed to save maintenance data to localStorage", error);
+        }
+    }, [maintenanceData]);
+
+    // Effect to save component replacements to localStorage whenever it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(COMPONENT_REPLACEMENTS_KEY, JSON.stringify(componentReplacements));
+        } catch (error) {
+            console.error("Failed to save component replacements to localStorage", error);
+        }
+    }, [componentReplacements]);
+    
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
     const [isFullEditModalOpen, setIsFullEditModalOpen] = useState(false);
     const [recordToEdit, setRecordToEdit] = useState<MaintenanceRecord | null>(null);
-    const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>(MOCK_COMPONENT_REPLACEMENTS);
     const [currentPage, setCurrentPage] = useState('dashboard'); // 'dashboard', 'charts', or 'addRecord'
     const [clientFilter, setClientFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
