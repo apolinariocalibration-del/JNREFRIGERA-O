@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
 import { MOCK_DATA, MOCK_COMPONENT_REPLACEMENTS } from './constants';
