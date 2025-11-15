@@ -38,7 +38,6 @@ const App = () => {
     const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
     const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
     const [loginError, setLoginError] = useState<string | null>(null);
-    const [publishTrigger, setPublishTrigger] = useState(0);
 
     const handleLogin = (user: string, pass: string) => {
         if (user.trim() === 'JN' && pass.trim() === '123') {
@@ -77,15 +76,15 @@ const App = () => {
         if (isNewClient) {
             setClientFilter(newRecordData.Cliente);
         }
-
-        setPublishTrigger(prev => prev + 1);
     };
 
-    const handleAddComponentReplacement = async (newReplacement: ComponentReplacementRecord) => {
-        const newComponentData = [...componentReplacements, newReplacement];
+    const handleAddComponentReplacement = async (newReplacement: Omit<ComponentReplacementRecord, 'ID'>) => {
+        const nextId = componentReplacements.length > 0 ? Math.max(...componentReplacements.map(r => r.ID)) + 1 : 1;
+        const newRecord = { ...newReplacement, ID: nextId };
+
+        const newComponentData = [...componentReplacements, newRecord];
         await db.saveAllComponentReplacements(newComponentData);
         setComponentReplacements(newComponentData);
-        setPublishTrigger(prev => prev + 1);
     };
     
 
@@ -285,7 +284,6 @@ const App = () => {
                     onAddComponentReplacement={handleAddComponentReplacement}
                     componentReplacements={componentReplacements}
                     maintenanceData={maintenanceData}
-                    publishTrigger={publishTrigger}
                 />
             )}
         </main>

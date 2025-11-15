@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 // Fix: Import ComponentReplacementRecord to properly type component props.
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
-import { CLIENT_LIST } from './constants';
 
 declare var XLSX: any;
 
@@ -71,7 +70,8 @@ const FullEditRecordModal: React.FC<{
     record: MaintenanceRecord;
     onUpdate: (updatedRecord: MaintenanceRecord) => void;
     onClose: () => void;
-}> = ({ record, onUpdate, onClose }) => {
+    uniqueClients: string[];
+}> = ({ record, onUpdate, onClose, uniqueClients }) => {
     const [formData, setFormData] = useState<MaintenanceRecord>(record);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -111,7 +111,7 @@ const FullEditRecordModal: React.FC<{
                             <label className="block text-sm font-medium text-slate-400 mb-1">Cliente</label>
                             <input type="text" name="Cliente" value={formData.Cliente} onChange={handleChange} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required list="client-list"/>
                             <datalist id="client-list">
-                                {CLIENT_LIST.map(c => <option key={c} value={c} />)}
+                                {uniqueClients.map(c => <option key={c} value={c} />)}
                             </datalist>
                         </div>
                         <div>
@@ -502,6 +502,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     record={recordToEdit} 
                     onUpdate={onUpdateFullRecord} 
                     onClose={onCloseFullEditModal} 
+                    uniqueClients={uniqueClients}
                 />
             )}
 
