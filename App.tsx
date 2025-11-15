@@ -1,64 +1,31 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
-import { MOCK_DATA, MOCK_COMPONENT_REPLACEMENTS } from './constants';
 import DashboardPage from './DashboardPage';
 import AddRecordPage from './AddRecordPage';
 import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
-
-const MAINTENANCE_DATA_KEY = 'jnRefrigeracaoMaintenanceData';
-const COMPONENT_REPLACEMENTS_KEY = 'jnRefrigeracaoComponentReplacements';
+import * as db from './db';
 
 // Main App Component
 const App = () => {
-    const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>(() => {
-        try {
-            const savedData = localStorage.getItem(MAINTENANCE_DATA_KEY);
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                // Convert date strings back to Date objects
-                return parsedData.map((record: MaintenanceRecord) => ({...record, Data: new Date(record.Data)}));
-            }
-        } catch (error) {
-            console.error("Failed to load maintenance data from localStorage", error);
-        }
-        return MOCK_DATA;
-    });
-
-    const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>(() => {
-        try {
-            const savedData = localStorage.getItem(COMPONENT_REPLACEMENTS_KEY);
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                // Convert date strings back to Date objects
-                return parsedData.map((record: ComponentReplacementRecord) => ({...record, Data: new Date(record.Data)}));
-            }
-        } catch (error) {
-            console.error("Failed to load component replacements from localStorage", error);
-        }
-        return MOCK_COMPONENT_REPLACEMENTS;
-    });
-
-    // Effect to save maintenance data to localStorage whenever it changes
-    useEffect(() => {
-        try {
-            localStorage.setItem(MAINTENANCE_DATA_KEY, JSON.stringify(maintenanceData));
-        } catch (error) {
-            console.error("Failed to save maintenance data to localStorage", error);
-        }
-    }, [maintenanceData]);
-
-    // Effect to save component replacements to localStorage whenever it changes
-    useEffect(() => {
-        try {
-            localStorage.setItem(COMPONENT_REPLACEMENTS_KEY, JSON.stringify(componentReplacements));
-        } catch (error) {
-            console.error("Failed to save component replacements to localStorage", error);
-        }
-    }, [componentReplacements]);
+    const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>([]);
+    const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     
+    // Effect to load data from the local DB on component mount
+    useEffect(() => {
+        const loadData = async () => {
+            setIsLoading(true);
+            db.initializeDB(); // Seeds the database on first run
+            const maintData = await db.getMaintenanceRecords();
+            const compData = await db.getComponentReplacements();
+            setMaintenanceData(maintData);
+            setComponentReplacements(compData);
+            setIsLoading(false);
+        };
+        loadData();
+    }, []);
+
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
     const [isFullEditModalOpen, setIsFullEditModalOpen] = useState(false);
@@ -91,8 +58,7 @@ const App = () => {
     };
 
 
-    const handleAddRecord = (newRecordData: Omit<MaintenanceRecord, 'ID' | 'Status'>) => {
-        // Check if the client is new *before* adding the new record to the state.
+    const handleAddRecord = async (newRecordData: Omit<MaintenanceRecord, 'ID' | 'Status'>) => {
         const isNewClient = !maintenanceData.some(record => record.Cliente === newRecordData.Cliente);
 
         const nextId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) + 1 : 1;
@@ -101,10 +67,12 @@ const App = () => {
             ID: nextId,
             Status: newRecordData.Pendencia.trim() ? 'Pendente' : 'Concluído',
         };
-        setMaintenanceData(prev => [newRecord, ...prev]);
+        
+        const newMaintenanceData = [newRecord, ...maintenanceData];
+        await db.saveAllMaintenanceRecords(newMaintenanceData);
+        setMaintenanceData(newMaintenanceData);
         setNewlyAddedRecordId(nextId);
         
-        // If the client is new, automatically set the client filter.
         if (isNewClient) {
             setClientFilter(newRecordData.Cliente);
         }
@@ -112,11 +80,13 @@ const App = () => {
         setCurrentPage('dashboard');
     };
 
-    const handleAddComponentReplacement = (newReplacement: ComponentReplacementRecord) => {
-        setComponentReplacements(prev => [...prev, newReplacement]);
+    const handleAddComponentReplacement = async (newReplacement: ComponentReplacementRecord) => {
+        const newComponentData = [...componentReplacements, newReplacement];
+        await db.saveAllComponentReplacements(newComponentData);
+        setComponentReplacements(newComponentData);
     };
     
-    const handleImportData = (
+    const handleImportData = async (
       newMaintenanceRecords: Omit<MaintenanceRecord, 'ID' | 'Status'>[],
       newComponentRecords: Omit<ComponentReplacementRecord, 'ID'>[]
     ) => {
@@ -135,43 +105,49 @@ const App = () => {
             ID: nextComponentId++,
         }));
         
-        setMaintenanceData(prev => [...processedMaintenanceRecords, ...prev]);
-        setComponentReplacements(prev => [...processedComponentRecords, ...prev]);
+        const newMaintenanceData = [...processedMaintenanceRecords, ...maintenanceData];
+        const newComponentData = [...processedComponentRecords, ...componentReplacements];
+        
+        await db.saveAllMaintenanceRecords(newMaintenanceData);
+        await db.saveAllComponentReplacements(newComponentData);
+
+        setMaintenanceData(newMaintenanceData);
+        setComponentReplacements(newComponentData);
     
         alert(`${processedMaintenanceRecords.length} registros de manutenção e ${processedComponentRecords.length} substituições de componentes foram importados com sucesso!`);
     };
 
 
-    const handleUpdateRecord = (id: number, updatedData: { Pendencia: string, OBS: string }) => {
-        setMaintenanceData(prevData =>
-            prevData.map(record => {
-                if (record.ID === id) {
-                    // FIX: Explicitly type `newStatus` to match the `MaintenanceRecord['Status']` type.
-                    const newStatus: 'Concluído' | 'Pendente' = updatedData.Pendencia.trim() === '' ? 'Concluído' : 'Pendente';
-                    return {
-                        ...record,
-                        Pendencia: updatedData.Pendencia,
-                        OBS: record.OBS ? `${record.OBS}\n${updatedData.OBS}` : updatedData.OBS,
-                        Status: newStatus,
-                    };
-                }
-                return record;
-            })
-        );
+    const handleUpdateRecord = async (id: number, updatedData: { Pendencia: string, OBS: string }) => {
+        const newMaintenanceData = maintenanceData.map(record => {
+            if (record.ID === id) {
+                const newStatus: 'Concluído' | 'Pendente' = updatedData.Pendencia.trim() === '' ? 'Concluído' : 'Pendente';
+                return {
+                    ...record,
+                    Pendencia: updatedData.Pendencia,
+                    OBS: record.OBS ? `${record.OBS}\n${updatedData.OBS}` : updatedData.OBS,
+                    Status: newStatus,
+                };
+            }
+            return record;
+        });
+
+        await db.saveAllMaintenanceRecords(newMaintenanceData);
+        setMaintenanceData(newMaintenanceData);
         setIsEditModalOpen(false);
         setCurrentRecord(null);
     };
 
-    const handleUpdateFullRecord = (updatedRecord: MaintenanceRecord) => {
-        // FIX: Explicitly type `newStatus` to match the `MaintenanceRecord['Status']` type.
+    const handleUpdateFullRecord = async (updatedRecord: MaintenanceRecord) => {
         const newStatus: 'Concluído' | 'Pendente' = updatedRecord.Pendencia.trim() === '' ? 'Concluído' : 'Pendente';
         const finalRecord = { ...updatedRecord, Status: newStatus };
         
-        setMaintenanceData(prevData =>
-            prevData.map(record =>
-                record.ID === finalRecord.ID ? finalRecord : record
-            )
+        const newMaintenanceData = maintenanceData.map(record =>
+            record.ID === finalRecord.ID ? finalRecord : record
         );
+        
+        await db.saveAllMaintenanceRecords(newMaintenanceData);
+        setMaintenanceData(newMaintenanceData);
         setIsFullEditModalOpen(false);
         setRecordToEdit(null);
     };
@@ -196,8 +172,10 @@ const App = () => {
         setRecordToEdit(null);
     };
 
-    const handleDeleteRecord = (idToDelete: number) => {
-        setMaintenanceData(prevData => prevData.filter(record => record.ID !== idToDelete));
+    const handleDeleteRecord = async (idToDelete: number) => {
+        const newMaintenanceData = maintenanceData.filter(record => record.ID !== idToDelete);
+        await db.saveAllMaintenanceRecords(newMaintenanceData);
+        setMaintenanceData(newMaintenanceData);
     };
 
     const handleClientFilterChange = (client: string) => setClientFilter(client);
@@ -249,6 +227,17 @@ const App = () => {
             </button>
         );
     };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="text-center">
+                    <span className="text-6xl animate-pulse">❄️</span>
+                    <h1 className="text-3xl font-bold text-white mt-4">Carregando Banco de Dados...</h1>
+                </div>
+            </div>
+        );
+    }
 
     if (!userRole) {
         return <LoginPage onLogin={handleLogin} error={loginError} />;

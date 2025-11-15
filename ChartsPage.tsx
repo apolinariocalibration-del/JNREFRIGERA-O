@@ -137,8 +137,10 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         }, {} as Record<string, Record<string, number>>);
         
         const sortedClients = Object.keys(aggregatedDurationData).sort((a, b) => {
-            const totalA = Object.values(aggregatedDurationData[a]).reduce((sum, d) => sum + d, 0);
-            const totalB = Object.values(aggregatedDurationData[b]).reduce((sum, d) => sum + d, 0);
+            // FIX: Cast reduce value to number, as `Object.values` may be inferred as `unknown[]`,
+            // causing errors in the sum and subsequent subtraction.
+            const totalA = Object.values(aggregatedDurationData[a]).reduce((sum, d) => sum + (d as number), 0);
+            const totalB = Object.values(aggregatedDurationData[b]).reduce((sum, d) => sum + (d as number), 0);
             return totalB - totalA;
         });
 
@@ -151,7 +153,9 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
             'Obra/Instalação': '#8b5cf6',
         };
 
-        const durationDatasets = serviceTypes.map(service => ({
+        // FIX: Explicitly type `service` as string to prevent it from being inferred
+        // as `unknown`, which would cause an indexing error.
+        const durationDatasets = serviceTypes.map((service: string) => ({
             label: service,
             data: sortedClients.map(client => aggregatedDurationData[client][service] || 0),
             backgroundColor: serviceColors[service] || '#64748b',
