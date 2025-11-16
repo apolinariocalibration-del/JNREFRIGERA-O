@@ -25,6 +25,81 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
     const dataFileShaRef = useRef<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+
+
+    // Fetches the latest data from GitHub, compares SHAs, and updates state if necessary.
+    const fetchLatestData = async (isManual: boolean = false): Promise<'success' | 'no-changes' | 'error'> => {
+        const { OWNER, REPO } = GITHUB_CONFIG;
+        if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
+            if (isManual) setRefreshMessage("Erro de configuração.");
+            console.error("GitHub config not set.");
+            return 'error';
+        }
+        
+        try {
+            const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
+            const response = await fetch(githubApiUrl, {
+                headers: { 'Accept': 'application/vnd.github.v3+json' },
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error(`GitHub API request failed with status ${response.status}`);
+            }
+
+            const fileData = await response.json();
+            const newSha = fileData.sha;
+
+            if (newSha && newSha !== dataFileShaRef.current) {
+                console.log(`New data detected (SHA: ${newSha}). Updating state.`);
+                dataFileShaRef.current = newSha;
+
+                const data = decodeGitHubFileContent(fileData.content);
+                if (!data) throw new Error("Failed to decode new data from GitHub.");
+            
+                const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+                const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+
+                setMaintenanceData(newMaintData);
+                setComponentReplacements(newCompData);
+                await db.saveAllMaintenanceRecords(newMaintData);
+                await db.saveAllComponentReplacements(newCompData);
+                return 'success';
+            } else {
+                console.log("No new data found.");
+                return 'no-changes';
+            }
+        } catch (error) {
+            console.error('Data fetch failed:', error);
+            return 'error';
+        }
+    };
+
+    // Handler for the manual refresh button
+    const handleManualRefresh = async () => {
+        if (isRefreshing) return;
+        setIsRefreshing(true);
+        setRefreshMessage(null);
+
+        const status = await fetchLatestData(true);
+
+        switch (status) {
+            case 'success':
+                setRefreshMessage("Dados atualizados com sucesso!");
+                break;
+            case 'no-changes':
+                setRefreshMessage("Nenhuma alteração encontrada.");
+                break;
+            case 'error':
+                setRefreshMessage("Erro ao atualizar. Tente novamente.");
+                break;
+        }
+
+        setIsRefreshing(false);
+        setTimeout(() => setRefreshMessage(null), 4000);
+    };
 
     // Effect to load data from the definitive source (GitHub) on mount, with fallbacks.
     useEffect(() => {
@@ -98,50 +173,9 @@ const App = () => {
         if (!userRole) return;
 
         const pollData = async () => {
-            const { OWNER, REPO } = GITHUB_CONFIG;
-            if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
-                return; // Config not set, no polling.
-            }
-            
-            try {
-                const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
-                const response = await fetch(`${githubApiUrl}?t=${new Date().getTime()}`, {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' },
-                    cache: 'no-store' // Force fresh data, bypassing all caches
-                });
-
-                if (!response.ok) {
-                    if (response.status === 403) {
-                       console.warn("GitHub API rate limit may be exceeded. Polling paused.");
-                    }
-                   return;
-               }
-
-                const fileData = await response.json();
-                const newSha = fileData.sha;
-
-                // If the SHA is new, update the data.
-                if (newSha && newSha !== dataFileShaRef.current) {
-                    console.log(`New data detected (SHA: ${newSha}). Updating state for all users.`);
-                    dataFileShaRef.current = newSha; // Update the SHA reference
-
-                    const data = decodeGitHubFileContent(fileData.content);
-                    if (!data) return;
-                
-                    const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-                    const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-
-                    setMaintenanceData(newMaintData);
-                    setComponentReplacements(newCompData);
-                    await db.saveAllMaintenanceRecords(newMaintData);
-                    await db.saveAllComponentReplacements(newCompData);
-                }
-            } catch (error) {
-                console.warn('Polling from GitHub API failed:', error);
-            }
+            await fetchLatestData();
         };
 
-        // Poll every 61 seconds to stay safely within GitHub's unauthenticated API rate limit.
         const intervalId = setInterval(pollData, 61000);
         return () => clearInterval(intervalId);
 
@@ -344,6 +378,41 @@ const App = () => {
                     <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">JN Refrigeração Dashboard</h1>
                 </div>
                 <div className="flex items-center gap-4">
+                  <div className="relative">
+                      <button 
+                          onClick={handleManualRefresh}
+                          disabled={isRefreshing}
+                          className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-slate-700 hover:bg-cyan-600/50 text-slate-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
+                          aria-live="polite"
+                          aria-busy={isRefreshing}
+                          title="Atualizar dados"
+                      >
+                          {isRefreshing ? (
+                              <>
+                                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  <span>Atualizando...</span>
+                              </>
+                          ) : (
+                              <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.186l-1.393.93a5.002 5.002 0 00-8.506-1.543V5a1 1 0 01-2 0V3a1 1 0 011-1zm12 15a1 1 0 01-1-1v-2.101a7.002 7.002 0 01-11.899-2.186l1.393-.93a5.002 5.002 0 008.506 1.543V15a1 1 0 012 0v2a1 1 0 01-1 1z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Atualizar</span>
+                              </>
+                          )}
+                      </button>
+                      {refreshMessage && (
+                          <div 
+                              className="absolute top-full mt-2 right-0 bg-slate-600 text-white text-xs font-semibold rounded-md py-1.5 px-3 shadow-lg whitespace-nowrap z-20"
+                              role="status"
+                          >
+                              {refreshMessage}
+                          </div>
+                      )}
+                  </div>
                   <nav className="flex items-center gap-2">
                       <NavButton page="dashboard" label="Dashboard" />
                       <NavButton page="charts" label="Gráficos" />
