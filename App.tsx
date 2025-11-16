@@ -47,7 +47,7 @@ const App = () => {
         loadData();
     }, []);
 
-    // Effect for polling for new data every 30 seconds
+    // Effect for polling for new data every 5 seconds
     useEffect(() => {
         if (!userRole) return;
 
@@ -75,7 +75,7 @@ const App = () => {
             }
         };
 
-        const intervalId = setInterval(pollData, 30000);
+        const intervalId = setInterval(pollData, 5000);
         return () => clearInterval(intervalId);
 
     }, [userRole, maintenanceData, componentReplacements]);
