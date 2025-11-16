@@ -15,9 +15,6 @@ export const GITHUB_CONFIG = {
   /**
    * O nome do repositório onde o dashboard está.
    * Exemplo: 'dashboard-refrigeracao'
-   * 
-   * CORREÇÃO: O nome anterior 'JNREFRIGERA-O' parecia incorreto. Ajustado para 'JNREFRIGERACAO'.
-   * POR FAVOR, VERIFIQUE SE ESTE É O NOME EXATO DO SEU REPOSITÓRIO NO GITHUB.
    */
-  REPO: 'JNREFRIGERACAO' 
+  REPO: 'JNREFRIGERA-O' 
 };
