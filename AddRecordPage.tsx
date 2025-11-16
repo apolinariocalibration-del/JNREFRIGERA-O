@@ -337,17 +337,21 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
     };
 
     const publishToGitHub = async () => {
-        if (!githubConfig) return;
-
+        if (!githubConfig) {
+            setPublishStatus('error');
+            setPublishMessage("Configuração do GitHub não encontrada.");
+            return;
+        }
+    
         setPublishStatus('publishing');
         setPublishMessage('Publicando alterações...');
-
+    
         const latestMaintenanceData = await db.getMaintenanceRecords();
         const latestComponentData = await db.getComponentReplacements();
         
         latestMaintenanceData.sort(sortByDateDesc);
         latestComponentData.sort(sortByDateDesc);
-
+    
         const dataToString = (data: any[]) => {
             return JSON.stringify(data, (key, value) => {
                 if (key === 'Data' && value) return `__DATE__${new Date(value).toISOString()}__DATE__`;
@@ -356,7 +360,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         };
         
         const dynamicClientList = getUniqueClients(latestMaintenanceData);
-
+    
         const content = `import { MaintenanceRecord, ComponentType, ComponentReplacementRecord } from './types';
 
 export const CLIENT_LIST = ${JSON.stringify(dynamicClientList, null, 2)};
@@ -367,52 +371,73 @@ export const MOCK_COMPONENT_REPLACEMENTS: Omit<ComponentReplacementRecord, 'ID'>
 
 export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToString(latestMaintenanceData.map(({ ID, Status, ...rest }) => rest))};
 `.trim();
-
+    
         try {
+            // --- STEP 1: Get current file SHA to perform an update ---
             let currentSha: string | undefined;
-
-            const getFileResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
-                headers: { 'Authorization': `token ${githubConfig.token}` }
-            });
-
-            if (getFileResponse.ok) {
-                const fileData = await getFileResponse.json();
-                currentSha = fileData.sha;
-            } else if (getFileResponse.status === 404) {
-                currentSha = undefined; // File doesn't exist, we'll create it.
-            } else {
-                if (getFileResponse.status === 401 || getFileResponse.status === 403) throw new Error('Token inválido ou sem permissão de leitura.');
-                throw new Error(`Erro ao buscar arquivo (${getFileResponse.status}).`);
+            try {
+                const getFileResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
+                    headers: { 'Authorization': `token ${githubConfig.token}` }
+                });
+    
+                if (getFileResponse.ok) {
+                    const fileData = await getFileResponse.json();
+                    currentSha = fileData.sha;
+                } else if (getFileResponse.status === 404) {
+                    currentSha = undefined; // File doesn't exist, this is fine. We will create it.
+                } else {
+                    const errorBody = await getFileResponse.json().catch(() => ({}));
+                    if (getFileResponse.status === 401 || getFileResponse.status === 403) {
+                        throw new Error('Token do GitHub inválido ou sem permissão de leitura. Verifique o token e as permissões do repositório.');
+                    }
+                    throw new Error(`Falha ao verificar arquivo no GitHub (Status: ${getFileResponse.status}). ${errorBody.message || ''}`);
+                }
+            } catch (networkError) {
+                if (networkError instanceof Error && (networkError.message.includes('Falha ao verificar') || networkError.message.includes('Token do GitHub'))) {
+                    throw networkError;
+                }
+                console.error("Network error while checking GitHub file:", networkError);
+                throw new Error('Falha de rede ao verificar o arquivo no GitHub. Verifique sua conexão com a internet.');
             }
-
-            const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${githubConfig.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: `[BOT] Atualiza dados em ${new Date().toISOString()}`,
-                    content: btoa(unescape(encodeURIComponent(content))),
-                    sha: currentSha
-                })
-            });
-
-            if (!updateResponse.ok) {
-                const errorBody = await updateResponse.json().catch(() => ({}));
-                if (updateResponse.status === 401 || updateResponse.status === 403) throw new Error('Token inválido ou sem permissão de escrita.');
-                if (updateResponse.status === 404) throw new Error('Repositório ou Dono não encontrado nas configurações.');
-                if (updateResponse.status === 409) throw new Error('Conflito de versão. Tente publicar novamente.');
-                if (updateResponse.status === 422) throw new Error('Erro de processamento no GitHub (ex: arquivo vazio).');
-                throw new Error(`Erro ao publicar (${updateResponse.status}): ${errorBody.message || 'Erro desconhecido'}`);
+    
+            // --- STEP 2: Create or Update the file ---
+            try {
+                const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `[BOT] Atualiza dados em ${new Date().toISOString()}`,
+                        content: btoa(unescape(encodeURIComponent(content))),
+                        sha: currentSha // sha is undefined if creating a new file
+                    })
+                });
+    
+                if (!updateResponse.ok) {
+                    const errorBody = await updateResponse.json().catch(() => ({}));
+                    if (updateResponse.status === 401 || updateResponse.status === 403) throw new Error('Token do GitHub inválido ou sem permissão de escrita.');
+                    if (updateResponse.status === 404) throw new Error('Repositório ou Dono não encontrado. Verifique as configurações.');
+                    if (updateResponse.status === 409) throw new Error('Conflito de versão. O arquivo no GitHub foi modificado. Tente publicar novamente.');
+                    if (updateResponse.status === 422) throw new Error(`Erro de validação do GitHub: ${errorBody.message || 'Verifique se os dados estão corretos.'}`);
+                    throw new Error(`Erro ao publicar no GitHub (Status: ${updateResponse.status}): ${errorBody.message || 'Erro desconhecido'}`);
+                }
+            } catch (networkError) {
+                 if (networkError instanceof Error && networkError.message.includes('Erro ao publicar')) {
+                    throw networkError;
+                }
+                console.error("Network error while publishing to GitHub:", networkError);
+                throw new Error('Falha de rede ao publicar o arquivo. Verifique sua conexão com a internet.');
             }
-
+    
             setPublishStatus('success');
             setPublishMessage('Publicado com sucesso!');
+    
         } catch (error) {
             setPublishStatus('error');
-            setPublishMessage(error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.');
-            console.error(error);
+            setPublishMessage(error instanceof Error ? error.message : 'Ocorreu um erro desconhecido ao publicar.');
+            console.error("GitHub Publish Error:", error);
         }
     };
 
