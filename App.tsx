@@ -7,6 +7,17 @@ import LoginPage from './LoginPage';
 import * as db from './db';
 import { GITHUB_CONFIG } from './config';
 
+// Helper to decode base64 content from GitHub API
+const decodeGitHubFileContent = (base64: string): any => {
+    try {
+        const decodedString = atob(base64);
+        return JSON.parse(decodedString);
+    } catch (e) {
+        console.error("Failed to decode or parse GitHub file content:", e);
+        return null;
+    }
+};
+
 // Main App Component
 const App = () => {
     const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>([]);
@@ -22,20 +33,24 @@ const App = () => {
             let data = null;
             const { OWNER, REPO } = GITHUB_CONFIG;
 
-            // 1. Try to fetch from GitHub (the single source of truth) if configured
+            // 1. Try to fetch from GitHub API (the single source of truth) if configured
             if (OWNER !== 'SEU_USUARIO_GITHUB' && REPO !== 'SEU_REPOSITORIO_GITHUB') {
                 try {
-                    // Assume main branch, add cache-busting
-                    const githubUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/public/data.json?t=${new Date().getTime()}`;
-                    const response = await fetch(githubUrl);
+                    const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
+                    const response = await fetch(githubApiUrl, {
+                        headers: { 'Accept': 'application/vnd.github.v3+json' }
+                    });
                     if (response.ok) {
-                        data = await response.json();
-                        console.log("Successfully loaded data from GitHub.");
+                        const fileData = await response.json();
+                        data = decodeGitHubFileContent(fileData.content);
+                        if (data) {
+                            console.log("Successfully loaded data from GitHub API.");
+                        }
                     } else {
-                         console.warn(`GitHub fetch failed with status ${response.status}.`);
+                         console.warn(`GitHub API fetch failed with status ${response.status}.`);
                     }
                 } catch (e) {
-                    console.error("Error fetching from GitHub:", e);
+                    console.error("Error fetching from GitHub API:", e);
                 }
             } else {
                  console.warn("GitHub config not set in config.ts. Real-time updates are disabled. Falling back to local data.");
@@ -76,7 +91,7 @@ const App = () => {
         loadData();
     }, []); // Run only once on mount
 
-    // Effect for polling GitHub for new data every 5 seconds
+    // Effect for polling GitHub for new data every ~60 seconds
     useEffect(() => {
         if (!userRole) return;
 
@@ -88,11 +103,23 @@ const App = () => {
             }
             
             try {
-                const githubUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/public/data.json?t=${new Date().getTime()}`;
-                const response = await fetch(githubUrl);
-                if (!response.ok) return;
+                const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
+                const response = await fetch(`${githubApiUrl}?t=${new Date().getTime()}`, {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                });
 
-                const data = await response.json();
+                if (!response.ok) {
+                    if (response.status === 403) {
+                       console.warn("GitHub API rate limit may be exceeded. Check browser's network tab for details.");
+                    }
+                   return;
+               }
+
+                const fileData = await response.json();
+                const data = decodeGitHubFileContent(fileData.content);
+
+                if (!data) return;
+                
                 const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
                 const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
                 
@@ -102,18 +129,19 @@ const App = () => {
                 const hasCompChanges = JSON.stringify(newCompData) !== JSON.stringify(componentReplacements);
 
                 if (hasMaintChanges || hasCompChanges) {
-                    console.log("New data detected from GitHub, updating state for all users.");
+                    console.log("New data detected from GitHub API, updating state for all users.");
                     setMaintenanceData(newMaintData);
                     setComponentReplacements(newCompData);
                     await db.saveAllMaintenanceRecords(newMaintData);
                     await db.saveAllComponentReplacements(newCompData);
                 }
             } catch (error) {
-                console.warn('Polling from GitHub failed:', error);
+                console.warn('Polling from GitHub API failed:', error);
             }
         };
 
-        const intervalId = setInterval(pollData, 5000);
+        // Poll every 61 seconds to stay safely within GitHub's unauthenticated API rate limit (60 requests/hour).
+        const intervalId = setInterval(pollData, 61000);
         return () => clearInterval(intervalId);
 
     }, [userRole, maintenanceData, componentReplacements]);

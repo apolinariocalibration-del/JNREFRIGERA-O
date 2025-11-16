@@ -10,11 +10,11 @@ export const GITHUB_CONFIG = {
    * O seu nome de usuário ou o nome da sua organização no GitHub.
    * Exemplo: 'john-doe'
    */
-  OWNER: 'SEU_USUARIO_GITHUB', 
+  OWNER: 'apolinariocalibration-del', 
 
   /**
    * O nome do repositório onde o dashboard está.
    * Exemplo: 'dashboard-refrigeracao'
    */
-  REPO: 'SEU_REPOSITORIO_GITHUB' 
+  REPO: 'JNREFRIGERA-O' 
 };
