@@ -2,14 +2,13 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord, ComponentType } from './types';
 import { COMPONENT_LIST } from './constants';
 import * as db from './db';
+import { GITHUB_CONFIG } from './config';
 
 // --- GITHUB CONFIG TYPES AND CONSTANTS ---
-const GITHUB_CONFIG_KEY = 'jnRefrigeracaoGithubConfig';
+const GITHUB_TOKEN_KEY = 'jnRefrigeracaoGithubToken';
 const GITHUB_FILE_PATH = 'public/data.json';
 
-interface GitHubConfig {
-    owner: string;
-    repo: string;
+interface GitHubTokenConfig {
     token: string;
 }
 
@@ -40,10 +39,10 @@ const sortByDateDesc = <T extends { Data: Date }>(a: T, b: T) => new Date(b.Data
 const GitHubConfigModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onSave: (config: GitHubConfig) => void;
-    initialConfig: GitHubConfig | null;
+    onSave: (config: GitHubTokenConfig | null) => void;
+    initialConfig: GitHubTokenConfig | null;
 }> = ({ isOpen, onClose, onSave, initialConfig }) => {
-    const [config, setConfig] = useState<GitHubConfig>(initialConfig || { owner: '', repo: '', token: '' });
+    const [config, setConfig] = useState<GitHubTokenConfig>(initialConfig || { token: '' });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -56,7 +55,7 @@ const GitHubConfigModal: React.FC<{
     };
 
     const handleRemove = () => {
-        localStorage.removeItem(GITHUB_CONFIG_KEY);
+        localStorage.removeItem(GITHUB_TOKEN_KEY);
         onSave(null); // Notify parent component
         onClose();
     };
@@ -67,23 +66,16 @@ const GitHubConfigModal: React.FC<{
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg border border-slate-700">
                 <h2 className="text-2xl font-semibold mb-4 text-white">Configurar Publicação Automática</h2>
-                <p className="text-slate-400 mb-4 text-sm">Insira as informações do seu repositório GitHub para ativar a publicação automática. Seu registro foi salvo localmente e será publicado na próxima atualização automática.</p>
+                <p className="text-slate-400 mb-4 text-sm">Insira seu Token de Acesso Pessoal (PAT) do GitHub para ativar a publicação automática. Seu registro foi salvo localmente e será publicado na próxima atualização.</p>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Dono do Repositório (Usuário/Organização)</label>
-                        <input type="text" name="owner" value={config.owner} onChange={handleChange} placeholder="ex: seu-usuario-github" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Nome do Repositório</label>
-                        <input type="text" name="repo" value={config.repo} onChange={handleChange} placeholder="ex: jn-dashboard" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
-                    </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Token de Acesso Pessoal (PAT)</label>
                         <input type="password" name="token" value={config.token} onChange={handleChange} placeholder="cole seu token aqui" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
-                        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline mt-1">Como criar um token? (Requer escopo `repo`)</a>
+                        <p className="text-xs text-slate-400 mt-1">O Dono e o Repositório são configurados no arquivo `config.ts`.</p>
+                        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">Como criar um token? (Requer escopo `repo`)</a>
                     </div>
                     <div className="flex justify-between items-center pt-4">
-                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover Config.</button>
+                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover Token</button>
                         <div className="flex gap-2">
                              <button type="button" onClick={onClose} className="px-5 py-2 bg-slate-600 hover:bg-slate-500 rounded-md font-semibold">Cancelar</button>
                              <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-md font-semibold text-white">Salvar</button>
@@ -313,33 +305,40 @@ interface AddRecordPageProps {
 }
 
 const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddComponentReplacement, componentReplacements, maintenanceData }) => {
-    const [githubConfig, setGithubConfig] = useState<GitHubConfig | null>(null);
+    const [githubTokenConfig, setGithubTokenConfig] = useState<GitHubTokenConfig | null>(null);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [publishStatus, setPublishStatus] = useState<'idle' | 'publishing' | 'success' | 'error'>('idle');
     const [publishMessage, setPublishMessage] = useState('');
 
     useEffect(() => {
-        const storedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
+        const storedConfig = localStorage.getItem(GITHUB_TOKEN_KEY);
         if (storedConfig) {
-            setGithubConfig(JSON.parse(storedConfig));
+            setGithubTokenConfig(JSON.parse(storedConfig));
         }
     }, []);
 
-    const handleSaveConfig = (config: GitHubConfig | null) => {
+    const handleSaveConfig = (config: GitHubTokenConfig | null) => {
         if (config) {
-            localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(config));
-            setGithubConfig(config);
+            localStorage.setItem(GITHUB_TOKEN_KEY, JSON.stringify(config));
+            setGithubTokenConfig(config);
         } else {
-            localStorage.removeItem(GITHUB_CONFIG_KEY);
-            setGithubConfig(null);
+            localStorage.removeItem(GITHUB_TOKEN_KEY);
+            setGithubTokenConfig(null);
         }
         setIsConfigModalOpen(false);
     };
 
     const publishToGitHub = async () => {
-        if (!githubConfig) {
+        const { OWNER, REPO } = GITHUB_CONFIG;
+        if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
             setPublishStatus('error');
-            setPublishMessage("Configuração do GitHub não encontrada.");
+            setPublishMessage("Ação necessária: Configure o dono e o repositório no arquivo 'config.ts' do projeto antes de publicar.");
+            return;
+        }
+
+        if (!githubTokenConfig?.token) {
+            setPublishStatus('error');
+            setPublishMessage("Configuração do Token do GitHub não encontrada.");
             return;
         }
     
@@ -358,13 +357,14 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         };
 
         const content = JSON.stringify(dataToPublish, null, 2);
+        const token = githubTokenConfig.token;
     
         try {
             // --- STEP 1: Get current file SHA to perform an update ---
             let currentSha: string | undefined;
             try {
-                const getFileResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
-                    headers: { 'Authorization': `token ${githubConfig.token}` }
+                const getFileResponse = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${GITHUB_FILE_PATH}`, {
+                    headers: { 'Authorization': `token ${token}` }
                 });
     
                 if (getFileResponse.ok) {
@@ -389,10 +389,10 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
     
             // --- STEP 2: Create or Update the file ---
             try {
-                const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
+                const updateResponse = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${GITHUB_FILE_PATH}`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${githubConfig.token}`,
+                        'Authorization': `token ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -419,7 +419,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
             }
     
             setPublishStatus('success');
-            setPublishMessage('Publicado no GitHub! A atualização estará visível no site em alguns minutos.');
+            setPublishMessage('Publicado no GitHub! A atualização estará visível para todos os usuários em segundos.');
     
         } catch (error) {
             setPublishStatus('error');
@@ -430,7 +430,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
 
     const handleAddMaintenance = async (record: Omit<MaintenanceRecord, 'ID' | 'Status'>) => {
         await onAddRecord(record);
-        if (!githubConfig) {
+        if (!githubTokenConfig) {
             setIsConfigModalOpen(true);
         } else {
             await publishToGitHub();
@@ -439,7 +439,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
 
     const handleAddComponent = async (record: Omit<ComponentReplacementRecord, 'ID'>) => {
         await onAddComponentReplacement(record);
-        if (!githubConfig) {
+        if (!githubTokenConfig) {
             setIsConfigModalOpen(true);
         } else {
             await publishToGitHub();
@@ -469,7 +469,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
                 isOpen={isConfigModalOpen}
                 onClose={() => setIsConfigModalOpen(false)}
                 onSave={handleSaveConfig}
-                initialConfig={githubConfig}
+                initialConfig={githubTokenConfig}
             />
             <PublishStatusModal 
                 status={publishStatus}

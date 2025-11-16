@@ -5,12 +5,7 @@ import AddRecordPage from './AddRecordPage';
 import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
 import * as db from './db';
-
-const GITHUB_CONFIG_KEY = 'jnRefrigeracaoGithubConfig';
-interface GitHubConfig {
-    owner: string;
-    repo: string;
-}
+import { GITHUB_CONFIG } from './config';
 
 // Main App Component
 const App = () => {
@@ -25,14 +20,13 @@ const App = () => {
         const loadData = async () => {
             setIsLoading(true);
             let data = null;
+            const { OWNER, REPO } = GITHUB_CONFIG;
 
-            // 1. Try to fetch from GitHub (the single source of truth)
-            const storedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
-            if (storedConfig) {
+            // 1. Try to fetch from GitHub (the single source of truth) if configured
+            if (OWNER !== 'SEU_USUARIO_GITHUB' && REPO !== 'SEU_REPOSITORIO_GITHUB') {
                 try {
-                    const config: GitHubConfig = JSON.parse(storedConfig);
                     // Assume main branch, add cache-busting
-                    const githubUrl = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/main/public/data.json?t=${new Date().getTime()}`;
+                    const githubUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/public/data.json?t=${new Date().getTime()}`;
                     const response = await fetch(githubUrl);
                     if (response.ok) {
                         data = await response.json();
@@ -43,6 +37,8 @@ const App = () => {
                 } catch (e) {
                     console.error("Error fetching from GitHub:", e);
                 }
+            } else {
+                 console.warn("GitHub config not set in config.ts. Real-time updates are disabled. Falling back to local data.");
             }
 
             // 2. If GitHub fails or no config, try local data.json (from deployment)
@@ -85,15 +81,14 @@ const App = () => {
         if (!userRole) return;
 
         const pollData = async () => {
-            const storedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
-            if (!storedConfig) {
-                // No config, no polling. Polling local file is useless for cross-user real-time updates.
+            const { OWNER, REPO } = GITHUB_CONFIG;
+            if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
+                // Config not set, no polling.
                 return;
             }
             
             try {
-                const config: GitHubConfig = JSON.parse(storedConfig);
-                const githubUrl = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/main/public/data.json?t=${new Date().getTime()}`;
+                const githubUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/public/data.json?t=${new Date().getTime()}`;
                 const response = await fetch(githubUrl);
                 if (!response.ok) return;
 
