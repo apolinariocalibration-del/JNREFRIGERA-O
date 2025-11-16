@@ -14,6 +14,22 @@ interface GitHubTokenConfig {
 }
 
 // --- HELPER FUNCTIONS ---
+
+// Helper to convert a UTF-8 string to a Base64 string using modern, robust methods.
+const utf8ToBase64 = (str: string): string => {
+    // Step 1: Encode the string to a Uint8Array of UTF-8 bytes
+    const bytes = new TextEncoder().encode(str);
+
+    // Step 2: Convert the byte array to a "binary string" (a string where each character's code point is in the range 0-255)
+    let binaryString = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binaryString += String.fromCharCode(bytes[i]);
+    }
+
+    // Step 3: Base64-encode the binary string
+    return btoa(binaryString);
+};
+
 const getUniqueTechnicians = (records: MaintenanceRecord[]): string[] => {
     const techNameMap = { 'Talison': 'Thalisson', 'Thaisson': 'Thalisson', 'Gean': 'Jean', 'Wellington': 'Weliton' };
     const normalizeTechName = (name: string) => { const trimmed = name.trim(); return techNameMap[trimmed] || trimmed; };
@@ -403,7 +419,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
                     },
                     body: JSON.stringify({
                         message: `[BOT] Atualiza data.json em ${new Date().toISOString()}`,
-                        content: btoa(unescape(encodeURIComponent(content))),
+                        content: utf8ToBase64(content),
                         sha: currentSha // sha is undefined if creating a new file
                     })
                 });
