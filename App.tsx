@@ -6,6 +6,7 @@ import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
 import * as db from './db';
 import { GITHUB_CONFIG } from './config';
+import { normalizeTechnicianName } from './utils';
 
 // Helper to decode base64 content from GitHub API using modern, robust methods.
 const decodeGitHubFileContent = (base64: string): any => {
@@ -292,6 +293,15 @@ const App = () => {
     };
 
     const handleUpdateFullRecord = async (updatedRecord: MaintenanceRecord) => {
+        // Normalize technician names before saving the update
+        if (updatedRecord.Equipe) {
+            const normalizedTeam = updatedRecord.Equipe
+                .split(/[\\\/]/)
+                .map(name => normalizeTechnicianName(name.trim())) // Normalize each name
+                .join(' / '); // Re-join with a consistent separator
+            updatedRecord.Equipe = normalizedTeam;
+        }
+
         const newStatus: 'Concluído' | 'Pendente' = updatedRecord.Pendencia.trim() === '' ? 'Concluído' : 'Pendente';
         const finalRecord = { ...updatedRecord, Status: newStatus };
         

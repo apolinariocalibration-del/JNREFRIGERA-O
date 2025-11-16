@@ -176,7 +176,20 @@ const AddRecordSection: React.FC<AddRecordSectionProps> = ({ onAdd, allTechnicia
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        onAdd(formData);
+
+        // Create a copy to normalize before submission
+        const recordToSubmit = { ...formData };
+
+        // Normalize technician names in the 'Equipe' field
+        if (recordToSubmit.Equipe) {
+            const normalizedTeam = recordToSubmit.Equipe
+                .split(/[\\\/]/) // Split by slash or backslash
+                .map(name => normalizeTechnicianName(name.trim())) // Normalize each name
+                .join(' / '); // Join back with a consistent separator
+            recordToSubmit.Equipe = normalizedTeam;
+        }
+        
+        onAdd(recordToSubmit);
         setFormData(initialFormState);
     };
 
