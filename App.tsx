@@ -39,7 +39,7 @@ const App = () => {
         }
         
         try {
-            const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
+            const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json?t=${new Date().getTime()}`;
             const response = await fetch(githubApiUrl, {
                 headers: { 'Accept': 'application/vnd.github.v3+json' },
                 cache: 'no-store'
@@ -111,7 +111,7 @@ const App = () => {
             // 1. Try to fetch from GitHub API (the single source of truth) if configured
             if (OWNER !== 'SEU_USUARIO_GITHUB' && REPO !== 'SEU_REPOSITORIO_GITHUB') {
                 try {
-                    const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
+                    const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json?t=${new Date().getTime()}`;
                     const response = await fetch(githubApiUrl, {
                         headers: { 'Accept': 'application/vnd.github.v3+json' },
                         cache: 'no-store' // Force fresh data, bypassing all caches
