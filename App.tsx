@@ -6,6 +6,12 @@ import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
 import * as db from './db';
 
+const GITHUB_CONFIG_KEY = 'jnRefrigeracaoGithubConfig';
+interface GitHubConfig {
+    owner: string;
+    repo: string;
+}
+
 // Main App Component
 const App = () => {
     const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>([]);
@@ -14,64 +20,101 @@ const App = () => {
     
     const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
 
-    // Effect to load data from remote source on component mount, with local fallback
+    // Effect to load data from the definitive source (GitHub) on mount, with fallbacks.
     useEffect(() => {
         const loadData = async () => {
             setIsLoading(true);
-            try {
-                const response = await fetch(`/data.json?t=${new Date().getTime()}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok, falling back to local.');
+            let data = null;
+
+            // 1. Try to fetch from GitHub (the single source of truth)
+            const storedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
+            if (storedConfig) {
+                try {
+                    const config: GitHubConfig = JSON.parse(storedConfig);
+                    // Assume main branch, add cache-busting
+                    const githubUrl = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/main/public/data.json?t=${new Date().getTime()}`;
+                    const response = await fetch(githubUrl);
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log("Successfully loaded data from GitHub.");
+                    } else {
+                         console.warn(`GitHub fetch failed with status ${response.status}.`);
+                    }
+                } catch (e) {
+                    console.error("Error fetching from GitHub:", e);
                 }
-                const data = await response.json();
-                
+            }
+
+            // 2. If GitHub fails or no config, try local data.json (from deployment)
+            if (!data) {
+                try {
+                    const response = await fetch(`/data.json?t=${new Date().getTime()}`);
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log("Loaded data from local /data.json");
+                    }
+                } catch (e) {
+                    console.error("Error fetching local /data.json:", e);
+                }
+            }
+            
+            // Process and save data if fetched, otherwise load from local DB
+            if (data) {
                 const maintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
                 const compData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-
                 setMaintenanceData(maintData);
                 setComponentReplacements(compData);
-                
                 await db.saveAllMaintenanceRecords(maintData);
                 await db.saveAllComponentReplacements(compData);
-
-            } catch (error) {
-                console.warn('Could not fetch remote data. Loading from local storage.', error);
+            } else {
+                // 3. Fallback to local storage
+                console.warn('All fetch attempts failed. Loading from local storage.');
                 const maintData = await db.getMaintenanceRecords();
                 const compData = await db.getComponentReplacements();
                 setMaintenanceData(maintData);
                 setComponentReplacements(compData);
-            } finally {
-                setIsLoading(false);
             }
+
+            setIsLoading(false);
         };
         loadData();
-    }, []);
+    }, []); // Run only once on mount
 
-    // Effect for polling for new data every 5 seconds
+    // Effect for polling GitHub for new data every 5 seconds
     useEffect(() => {
         if (!userRole) return;
 
         const pollData = async () => {
+            const storedConfig = localStorage.getItem(GITHUB_CONFIG_KEY);
+            if (!storedConfig) {
+                // No config, no polling. Polling local file is useless for cross-user real-time updates.
+                return;
+            }
+            
             try {
-                const response = await fetch(`/data.json?t=${new Date().getTime()}`);
+                const config: GitHubConfig = JSON.parse(storedConfig);
+                const githubUrl = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/main/public/data.json?t=${new Date().getTime()}`;
+                const response = await fetch(githubUrl);
                 if (!response.ok) return;
 
                 const data = await response.json();
                 const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
                 const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
                 
+                // Using JSON.stringify for a simple but effective deep comparison.
+                // This works because the data is consistently sorted before being written to GitHub.
                 const hasMaintChanges = JSON.stringify(newMaintData) !== JSON.stringify(maintenanceData);
                 const hasCompChanges = JSON.stringify(newCompData) !== JSON.stringify(componentReplacements);
 
                 if (hasMaintChanges || hasCompChanges) {
-                    console.log("New data detected, updating state.");
+                    console.log("New data detected from GitHub, updating state for all users.");
                     setMaintenanceData(newMaintData);
                     setComponentReplacements(newCompData);
                     await db.saveAllMaintenanceRecords(newMaintData);
                     await db.saveAllComponentReplacements(newCompData);
                 }
             } catch (error) {
-                console.warn('Polling failed:', error);
+                console.warn('Polling from GitHub failed:', error);
             }
         };
 
