@@ -258,9 +258,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
     useEffect(() => {
         if (newlyAddedRecordId) {
+            const element = document.getElementById(`record-${newlyAddedRecordId}`);
+            if (element) {
+                setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+            
             const timer = setTimeout(() => {
                 setNewlyAddedRecordId(null);
-            }, 2500); // Highlight for 2.5 seconds
+            }, 3000); // Highlight for 3 seconds
+            
             return () => clearTimeout(timer);
         }
     }, [newlyAddedRecordId, setNewlyAddedRecordId]);
@@ -450,7 +458,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                 </thead>
                                 <tbody>
                                     {filteredData.slice(0, visibleRecordsCount).map(record => (
-                                        <tr key={record.ID} className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
+                                        <tr 
+                                            key={record.ID} 
+                                            id={`record-${record.ID}`}
+                                            className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
                                             <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">{new Date(record.Data).toLocaleDateString('pt-BR')}</td>
                                             <td className="px-6 py-4">

@@ -72,6 +72,7 @@ const App = () => {
         await db.saveAllMaintenanceRecords(newMaintenanceData);
         setMaintenanceData(newMaintenanceData);
         setNewlyAddedRecordId(nextId);
+        setCurrentPage('dashboard');
         
         if (isNewClient) {
             setClientFilter(newRecordData.Cliente);

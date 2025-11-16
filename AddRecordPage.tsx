@@ -32,6 +32,9 @@ const getUniqueClients = (records: MaintenanceRecord[]): string[] => {
     return Array.from(clientSet).sort();
 };
 
+const sortByDateDesc = <T extends { Data: Date }>(a: T, b: T) => new Date(b.Data).getTime() - new Date(a.Data).getTime();
+
+
 // --- MODAL COMPONENTS ---
 
 const GitHubConfigModal: React.FC<{
@@ -341,6 +344,9 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
 
         const latestMaintenanceData = await db.getMaintenanceRecords();
         const latestComponentData = await db.getComponentReplacements();
+        
+        latestMaintenanceData.sort(sortByDateDesc);
+        latestComponentData.sort(sortByDateDesc);
 
         const dataToString = (data: any[]) => {
             return JSON.stringify(data, (key, value) => {
@@ -372,8 +378,11 @@ export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToStr
             if (getFileResponse.ok) {
                 const fileData = await getFileResponse.json();
                 currentSha = fileData.sha;
-            } else if (getFileResponse.status !== 404) {
-                throw new Error(`Falha ao verificar arquivo no GitHub: ${getFileResponse.statusText}`);
+            } else if (getFileResponse.status === 404) {
+                currentSha = undefined; // File doesn't exist, we'll create it.
+            } else {
+                if (getFileResponse.status === 401 || getFileResponse.status === 403) throw new Error('Token inválido ou sem permissão de leitura.');
+                throw new Error(`Erro ao buscar arquivo (${getFileResponse.status}).`);
             }
 
             const updateResponse = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_FILE_PATH}`, {
@@ -390,8 +399,12 @@ export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToStr
             });
 
             if (!updateResponse.ok) {
-                 const errorBody = await updateResponse.json().catch(() => ({ message: updateResponse.statusText }));
-                 throw new Error(`Falha ao publicar no GitHub: ${errorBody.message || updateResponse.statusText}`);
+                const errorBody = await updateResponse.json().catch(() => ({}));
+                if (updateResponse.status === 401 || updateResponse.status === 403) throw new Error('Token inválido ou sem permissão de escrita.');
+                if (updateResponse.status === 404) throw new Error('Repositório ou Dono não encontrado nas configurações.');
+                if (updateResponse.status === 409) throw new Error('Conflito de versão. Tente publicar novamente.');
+                if (updateResponse.status === 422) throw new Error('Erro de processamento no GitHub (ex: arquivo vazio).');
+                throw new Error(`Erro ao publicar (${updateResponse.status}): ${errorBody.message || 'Erro desconhecido'}`);
             }
 
             setPublishStatus('success');
