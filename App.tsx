@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
 import DashboardPage from './DashboardPage';
 import AddRecordPage from './AddRecordPage';
@@ -23,8 +23,8 @@ const App = () => {
     const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>([]);
     const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
     const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
+    const dataFileShaRef = useRef<string | null>(null);
 
     // Effect to load data from the definitive source (GitHub) on mount, with fallbacks.
     useEffect(() => {
@@ -42,12 +42,13 @@ const App = () => {
                     });
                     if (response.ok) {
                         const fileData = await response.json();
+                        dataFileShaRef.current = fileData.sha; // Store the initial SHA
                         data = decodeGitHubFileContent(fileData.content);
                         if (data) {
                             console.log("Successfully loaded data from GitHub API.");
                         }
                     } else {
-                         console.warn(`GitHub API fetch failed with status ${response.status}.`);
+                         console.warn(`GitHub API fetch failed with status ${response.status}. This may be due to an incorrect repo/owner name in config.ts, or the repository being private.`);
                     }
                 } catch (e) {
                     console.error("Error fetching from GitHub API:", e);
@@ -98,8 +99,7 @@ const App = () => {
         const pollData = async () => {
             const { OWNER, REPO } = GITHUB_CONFIG;
             if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
-                // Config not set, no polling.
-                return;
+                return; // Config not set, no polling.
             }
             
             try {
@@ -110,26 +110,25 @@ const App = () => {
 
                 if (!response.ok) {
                     if (response.status === 403) {
-                       console.warn("GitHub API rate limit may be exceeded. Check browser's network tab for details.");
+                       console.warn("GitHub API rate limit may be exceeded. Polling paused.");
                     }
                    return;
                }
 
                 const fileData = await response.json();
-                const data = decodeGitHubFileContent(fileData.content);
+                const newSha = fileData.sha;
 
-                if (!data) return;
-                
-                const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-                const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-                
-                // Using JSON.stringify for a simple but effective deep comparison.
-                // This works because the data is consistently sorted before being written to GitHub.
-                const hasMaintChanges = JSON.stringify(newMaintData) !== JSON.stringify(maintenanceData);
-                const hasCompChanges = JSON.stringify(newCompData) !== JSON.stringify(componentReplacements);
+                // If the SHA is new, update the data.
+                if (newSha && newSha !== dataFileShaRef.current) {
+                    console.log(`New data detected (SHA: ${newSha}). Updating state for all users.`);
+                    dataFileShaRef.current = newSha; // Update the SHA reference
 
-                if (hasMaintChanges || hasCompChanges) {
-                    console.log("New data detected from GitHub API, updating state for all users.");
+                    const data = decodeGitHubFileContent(fileData.content);
+                    if (!data) return;
+                
+                    const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+                    const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+
                     setMaintenanceData(newMaintData);
                     setComponentReplacements(newCompData);
                     await db.saveAllMaintenanceRecords(newMaintData);
@@ -140,11 +139,11 @@ const App = () => {
             }
         };
 
-        // Poll every 61 seconds to stay safely within GitHub's unauthenticated API rate limit (60 requests/hour).
+        // Poll every 61 seconds to stay safely within GitHub's unauthenticated API rate limit.
         const intervalId = setInterval(pollData, 61000);
         return () => clearInterval(intervalId);
 
-    }, [userRole, maintenanceData, componentReplacements]);
+    }, [userRole]); // Dependency array ensures polling starts on login and stops on logout.
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
