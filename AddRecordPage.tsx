@@ -3,7 +3,7 @@ import { MaintenanceRecord, ComponentReplacementRecord, ComponentType } from './
 import { COMPONENT_LIST } from './constants';
 import * as db from './db';
 import { GITHUB_CONFIG } from './config';
-import { formatDateForInput, parseDateFromInput } from './utils';
+import { formatDateForInput, parseDateFromInput, normalizeTechnicianName } from './utils';
 
 // --- GITHUB CONFIG TYPES AND CONSTANTS ---
 const GITHUB_TOKEN_KEY = 'jnRefrigeracaoGithubToken';
@@ -31,12 +31,10 @@ const utf8ToBase64 = (str: string): string => {
 };
 
 const getUniqueTechnicians = (records: MaintenanceRecord[]): string[] => {
-    const techNameMap = { 'Talison': 'Thalisson', 'Thaisson': 'Thalisson', 'Gean': 'Jean', 'Wellington': 'Weliton' };
-    const normalizeTechName = (name: string) => { const trimmed = name.trim(); return techNameMap[trimmed] || trimmed; };
     const techSet = new Set<string>();
     records.forEach(record => {
         (record.Equipe || '').split(/[\\\/]/).forEach(techName => {
-            if (techName.trim()) techSet.add(normalizeTechName(techName));
+            if (techName.trim()) techSet.add(normalizeTechnicianName(techName));
         });
     });
     return Array.from(techSet).sort();

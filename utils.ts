@@ -29,3 +29,20 @@ export const parseDateFromInput = (dateString: string): Date => {
     // o que é o comportamento esperado para um seletor de data.
     return new Date(`${dateString}T00:00:00`);
 };
+
+const techNameMap: { [key: string]: string } = {
+    'Talison': 'Thalisson',
+    'Thaisson': 'Thalisson',
+    'Gean': 'Jean',
+    'Wellington': 'Weliton'
+};
+
+/**
+ * Normaliza nomes de técnicos para consistência nos dados.
+ * @param name O nome do técnico.
+ * @returns O nome normalizado.
+ */
+export const normalizeTechnicianName = (name: string): string => {
+    const trimmed = name.trim();
+    return techNameMap[trimmed] || trimmed;
+};

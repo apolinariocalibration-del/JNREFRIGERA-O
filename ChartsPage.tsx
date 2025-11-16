@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
+import { normalizeTechnicianName } from './utils';
 
 declare var Chart: any;
 declare var ChartDataLabels: any;
@@ -48,14 +49,6 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
     const durationByClientChartRef = useRef(null);
 
     const chartData = useMemo(() => {
-        const techNameMap = {
-            'Talison': 'Thalisson',
-            'Thaisson': 'Thalisson',
-            'Gean': 'Jean',
-            'Wellington': 'Weliton'
-        };
-        const normalizeTechName = (name: string) => techNameMap[name.trim()] || name.trim();
-
         // Service type counts should be based on filtered data
         const serviceTypeCounts = maintenanceData.reduce((acc, record) => {
             const type = record.Serviço || 'Não especificado';
@@ -69,7 +62,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
             team.forEach(tech => {
                 const trimmedTech = tech.trim();
                 if (trimmedTech && trimmedTech.toLowerCase() !== 'bruno') {
-                    const normalizedTech = normalizeTechName(trimmedTech);
+                    const normalizedTech = normalizeTechnicianName(trimmedTech);
                     acc[normalizedTech] = (acc[normalizedTech] || 0) + 1;
                 }
             });
@@ -84,7 +77,10 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         }, {});
 
         const dailyClientData = maintenanceData.reduce((acc, record) => {
-            const date = new Date(record.Data).toISOString().split('T')[0];
+            // FIX: Use local date parts to create a timezone-agnostic date string key.
+            const d = new Date(record.Data);
+            const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            
             if (!acc[date]) {
                 acc[date] = new Set<string>();
             }
@@ -100,8 +96,8 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         const sortedDates = Object.keys(dailyServiceCounts).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
         
         const dailyLabels = sortedDates.map(dateStr => {
-            const date = new Date(dateStr);
-            return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+            const [_year, month, day] = dateStr.split('-');
+            return `${day}/${month}`;
         });
         const dailyData = sortedDates.map(date => dailyServiceCounts[date]);
 
