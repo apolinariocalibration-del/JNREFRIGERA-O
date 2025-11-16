@@ -321,9 +321,10 @@ interface AddRecordPageProps {
     onAddComponentReplacement: (record: Omit<ComponentReplacementRecord, 'ID'>) => Promise<void>;
     componentReplacements: ComponentReplacementRecord[];
     maintenanceData: MaintenanceRecord[];
+    onPublishSuccess: (newSha: string) => void;
 }
 
-const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddComponentReplacement, componentReplacements, maintenanceData }) => {
+const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddComponentReplacement, componentReplacements, maintenanceData, onPublishSuccess }) => {
     const [githubTokenConfig, setGithubTokenConfig] = useState<GitHubTokenConfig | null>(null);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [publishStatus, setPublishStatus] = useState<'idle' | 'publishing' | 'success' | 'error'>('idle');
@@ -347,18 +348,18 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         setIsConfigModalOpen(false);
     };
 
-    const publishToGitHub = async () => {
+    const publishToGitHub = async (): Promise<string | null> => {
         const { OWNER, REPO } = GITHUB_CONFIG;
         if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
             setPublishStatus('error');
             setPublishMessage("Ação necessária: Configure o dono e o repositório no arquivo 'config.ts' do projeto antes de publicar.");
-            return;
+            return null;
         }
 
         if (!githubTokenConfig?.token) {
             setPublishStatus('error');
             setPublishMessage("Configuração do Token do GitHub não encontrada.");
-            return;
+            return null;
         }
     
         setPublishStatus('publishing');
@@ -408,6 +409,7 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
             }
     
             // --- STEP 2: Create or Update the file ---
+            let newSha: string | null = null;
             try {
                 const updateResponse = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${GITHUB_FILE_PATH}`, {
                     method: 'PUT',
@@ -430,6 +432,9 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
                     if (updateResponse.status === 422) throw new Error(`Erro de validação do GitHub: ${errorBody.message || 'Verifique se os dados estão corretos.'}`);
                     throw new Error(`Erro ao publicar no GitHub (Status: ${updateResponse.status}): ${errorBody.message || 'Erro desconhecido'}`);
                 }
+                const updateResult = await updateResponse.json();
+                newSha = updateResult.content.sha;
+
             } catch (networkError) {
                  if (networkError instanceof Error && networkError.message.includes('Erro ao publicar')) {
                     throw networkError;
@@ -440,11 +445,13 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
     
             setPublishStatus('success');
             setPublishMessage('Publicado no GitHub! A atualização estará visível para todos os usuários em segundos.');
+            return newSha;
     
         } catch (error) {
             setPublishStatus('error');
             setPublishMessage(error instanceof Error ? error.message : 'Ocorreu um erro desconhecido ao publicar.');
             console.error("GitHub Publish Error:", error);
+            return null;
         }
     };
 
@@ -453,7 +460,10 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         if (!githubTokenConfig) {
             setIsConfigModalOpen(true);
         } else {
-            await publishToGitHub();
+            const newSha = await publishToGitHub();
+            if (newSha) {
+                onPublishSuccess(newSha);
+            }
         }
     };
 
@@ -462,7 +472,10 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         if (!githubTokenConfig) {
             setIsConfigModalOpen(true);
         } else {
-            await publishToGitHub();
+            const newSha = await publishToGitHub();
+            if (newSha) {
+                onPublishSuccess(newSha);
+            }
         }
     };
 

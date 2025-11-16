@@ -10,8 +10,8 @@ import { GITHUB_CONFIG } from './config';
 // Helper to decode base64 content from GitHub API using modern, robust methods.
 const decodeGitHubFileContent = (base64: string): any => {
     try {
-        // Step 1: Decode Base64 to a binary string
-        const binaryString = window.atob(base64);
+        // Step 1: Trim whitespace and decode Base64 to a binary string
+        const binaryString = window.atob(base64.trim());
         
         // Step 2: Convert the binary string to a Uint8Array
         const bytes = new Uint8Array(binaryString.length);
@@ -265,6 +265,11 @@ const App = () => {
         setComponentReplacements(newComponentData);
     };
     
+    // Callback to synchronize the local SHA ref after a successful publish.
+    const handlePublishSuccess = (newSha: string) => {
+        console.log(`Publication successful. Syncing new SHA: ${newSha}`);
+        dataFileShaRef.current = newSha;
+    };
 
     const handleUpdateRecord = async (id: number, updatedData: { Pendencia: string, OBS: string }) => {
         const newMaintenanceData = maintenanceData.map(record => {
@@ -490,6 +495,7 @@ const App = () => {
                     onAddComponentReplacement={handleAddComponentReplacement}
                     componentReplacements={componentReplacements}
                     maintenanceData={maintenanceData}
+                    onPublishSuccess={handlePublishSuccess}
                 />
             )}
         </main>
