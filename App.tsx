@@ -10,7 +10,11 @@ import { GITHUB_CONFIG } from './config';
 // Helper to decode base64 content from GitHub API
 const decodeGitHubFileContent = (base64: string): any => {
     try {
-        const decodedString = atob(base64);
+        // The 'escape' and 'unescape' functions are deprecated, but are needed here
+        // to correctly reverse the encoding method used in AddRecordPage.tsx.
+        // This combination correctly handles UTF-8 characters that may have been
+        // entered by users, such as accents (e.g., 'Manutenção').
+        const decodedString = decodeURIComponent(escape(window.atob(base64)));
         return JSON.parse(decodedString);
     } catch (e) {
         console.error("Failed to decode or parse GitHub file content:", e);
