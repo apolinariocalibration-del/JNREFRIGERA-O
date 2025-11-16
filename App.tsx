@@ -12,19 +12,73 @@ const App = () => {
     const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    // Effect to load data from the local DB on component mount
+    const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
+
+    // Effect to load data from remote source on component mount, with local fallback
     useEffect(() => {
         const loadData = async () => {
             setIsLoading(true);
-            db.initializeDB(); // Seeds the database on first run
-            const maintData = await db.getMaintenanceRecords();
-            const compData = await db.getComponentReplacements();
-            setMaintenanceData(maintData);
-            setComponentReplacements(compData);
-            setIsLoading(false);
+            try {
+                const response = await fetch(`/data.json?t=${new Date().getTime()}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok, falling back to local.');
+                }
+                const data = await response.json();
+                
+                const maintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+                const compData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+
+                setMaintenanceData(maintData);
+                setComponentReplacements(compData);
+                
+                await db.saveAllMaintenanceRecords(maintData);
+                await db.saveAllComponentReplacements(compData);
+
+            } catch (error) {
+                console.warn('Could not fetch remote data. Loading from local storage.', error);
+                const maintData = await db.getMaintenanceRecords();
+                const compData = await db.getComponentReplacements();
+                setMaintenanceData(maintData);
+                setComponentReplacements(compData);
+            } finally {
+                setIsLoading(false);
+            }
         };
         loadData();
     }, []);
+
+    // Effect for polling for new data every 30 seconds
+    useEffect(() => {
+        if (!userRole) return;
+
+        const pollData = async () => {
+            try {
+                const response = await fetch(`/data.json?t=${new Date().getTime()}`);
+                if (!response.ok) return;
+
+                const data = await response.json();
+                const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+                const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
+                
+                const hasMaintChanges = JSON.stringify(newMaintData) !== JSON.stringify(maintenanceData);
+                const hasCompChanges = JSON.stringify(newCompData) !== JSON.stringify(componentReplacements);
+
+                if (hasMaintChanges || hasCompChanges) {
+                    console.log("New data detected, updating state.");
+                    setMaintenanceData(newMaintData);
+                    setComponentReplacements(newCompData);
+                    await db.saveAllMaintenanceRecords(newMaintData);
+                    await db.saveAllComponentReplacements(newCompData);
+                }
+            } catch (error) {
+                console.warn('Polling failed:', error);
+            }
+        };
+
+        const intervalId = setInterval(pollData, 30000);
+        return () => clearInterval(intervalId);
+
+    }, [userRole, maintenanceData, componentReplacements]);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
@@ -36,7 +90,6 @@ const App = () => {
     const [monthFilter, setMonthFilter] = useState('all');
     const [yearFilter, setYearFilter] = useState('all');
     const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
-    const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
     const [loginError, setLoginError] = useState<string | null>(null);
 
     const handleLogin = (user: string, pass: string) => {
@@ -204,7 +257,7 @@ const App = () => {
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <div className="text-center">
                     <span className="text-6xl animate-pulse">❄️</span>
-                    <h1 className="text-3xl font-bold text-white mt-4">Carregando Banco de Dados...</h1>
+                    <h1 className="text-3xl font-bold text-white mt-4">Carregando Dados...</h1>
                 </div>
             </div>
         );

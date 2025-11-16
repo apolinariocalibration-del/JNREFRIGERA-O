@@ -1,31 +1,7 @@
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
-import { MOCK_DATA, MOCK_COMPONENT_REPLACEMENTS } from './constants';
 
 const MAINTENANCE_KEY = 'jnRefrigeracaoMaintenanceData';
 const COMPONENTS_KEY = 'jnRefrigeracaoComponentReplacements';
-
-// Função para popular o banco de dados com dados iniciais se estiver vazio.
-export const initializeDB = () => {
-    if (!localStorage.getItem(MAINTENANCE_KEY)) {
-        console.log("Initializing maintenance data from mocks...");
-        // Process mock data to add IDs and Status, similar to how new records are handled.
-        const processedMaintenanceData = MOCK_DATA.map((record, index) => ({
-            ...record,
-            ID: index + 1, // Assign a simple sequential ID
-            Status: record.Pendencia.trim() ? 'Pendente' : 'Concluído',
-        }));
-        localStorage.setItem(MAINTENANCE_KEY, JSON.stringify(processedMaintenanceData));
-    }
-    if (!localStorage.getItem(COMPONENTS_KEY)) {
-        console.log("Initializing component replacement data from mocks...");
-        // Add sequential IDs to component replacements as well for consistency
-        const processedComponentData = MOCK_COMPONENT_REPLACEMENTS.map((record, index) => ({
-            ...record,
-            ID: index + 1,
-        }));
-        localStorage.setItem(COMPONENTS_KEY, JSON.stringify(processedComponentData));
-    }
-};
 
 // Obtém todos os registros de manutenção do banco de dados local.
 export const getMaintenanceRecords = async (): Promise<MaintenanceRecord[]> => {

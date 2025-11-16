@@ -5,7 +5,7 @@ import * as db from './db';
 
 // --- GITHUB CONFIG TYPES AND CONSTANTS ---
 const GITHUB_CONFIG_KEY = 'jnRefrigeracaoGithubConfig';
-const GITHUB_FILE_PATH = 'src/constants.ts';
+const GITHUB_FILE_PATH = 'public/data.json';
 
 interface GitHubConfig {
     owner: string;
@@ -352,25 +352,12 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
         latestMaintenanceData.sort(sortByDateDesc);
         latestComponentData.sort(sortByDateDesc);
     
-        const dataToString = (data: any[]) => {
-            return JSON.stringify(data, (key, value) => {
-                if (key === 'Data' && value) return `__DATE__${new Date(value).toISOString()}__DATE__`;
-                return value;
-            }, 2).replace(/"__DATE__(.*?)__DATE__"/g, "new Date('$1')").replace(/\\/g, '\\\\');
+        const dataToPublish = {
+            maintenanceRecords: latestMaintenanceData,
+            componentReplacements: latestComponentData,
         };
-        
-        const dynamicClientList = getUniqueClients(latestMaintenanceData);
-    
-        const content = `import { MaintenanceRecord, ComponentType, ComponentReplacementRecord } from './types';
 
-export const CLIENT_LIST = ${JSON.stringify(dynamicClientList, null, 2)};
-
-export const COMPONENT_LIST: ComponentType[] = ${JSON.stringify(COMPONENT_LIST, null, 2)};
-
-export const MOCK_COMPONENT_REPLACEMENTS: Omit<ComponentReplacementRecord, 'ID'>[] = ${dataToString(latestComponentData.map(({ ID, ...rest }) => rest))};
-
-export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToString(latestMaintenanceData.map(({ ID, Status, ...rest }) => rest))};
-`.trim();
+        const content = JSON.stringify(dataToPublish, null, 2);
     
         try {
             // --- STEP 1: Get current file SHA to perform an update ---
@@ -409,7 +396,7 @@ export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToStr
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `[BOT] Atualiza dados em ${new Date().toISOString()}`,
+                        message: `[BOT] Atualiza data.json em ${new Date().toISOString()}`,
                         content: btoa(unescape(encodeURIComponent(content))),
                         sha: currentSha // sha is undefined if creating a new file
                     })
