@@ -39,7 +39,7 @@ const App = () => {
                     const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
                     const response = await fetch(githubApiUrl, {
                         headers: { 'Accept': 'application/vnd.github.v3+json' },
-                        cache: 'no-cache' // Bypass caches to get the latest data
+                        cache: 'no-store' // Force fresh data, bypassing all caches
                     });
                     if (response.ok) {
                         const fileData = await response.json();
@@ -107,7 +107,7 @@ const App = () => {
                 const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
                 const response = await fetch(`${githubApiUrl}?t=${new Date().getTime()}`, {
                     headers: { 'Accept': 'application/vnd.github.v3+json' },
-                    cache: 'no-cache' // Bypass caches to ensure fresh data
+                    cache: 'no-store' // Force fresh data, bypassing all caches
                 });
 
                 if (!response.ok) {
