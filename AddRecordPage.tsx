@@ -369,7 +369,8 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
             let currentSha: string | undefined;
             try {
                 const getFileResponse = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${GITHUB_FILE_PATH}`, {
-                    headers: { 'Authorization': `token ${token}` }
+                    headers: { 'Authorization': `token ${token}` },
+                    cache: 'no-store' // CRITICAL: Ensures we get the latest SHA, preventing 409 Conflict errors.
                 });
     
                 if (getFileResponse.ok) {
