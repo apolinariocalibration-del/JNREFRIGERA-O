@@ -432,7 +432,7 @@ export const MOCK_DATA: Omit<MaintenanceRecord, 'ID' | 'Status'>[] = ${dataToStr
             }
     
             setPublishStatus('success');
-            setPublishMessage('Publicado com sucesso!');
+            setPublishMessage('Publicado no GitHub! A atualização estará visível no site em alguns minutos.');
     
         } catch (error) {
             setPublishStatus('error');
