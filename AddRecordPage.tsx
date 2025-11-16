@@ -3,6 +3,7 @@ import { MaintenanceRecord, ComponentReplacementRecord, ComponentType } from './
 import { COMPONENT_LIST } from './constants';
 import * as db from './db';
 import { GITHUB_CONFIG } from './config';
+import { formatDateForInput, parseDateFromInput } from './utils';
 
 // --- GITHUB CONFIG TYPES AND CONSTANTS ---
 const GITHUB_TOKEN_KEY = 'jnRefrigeracaoGithubToken';
@@ -67,6 +68,12 @@ const GitHubConfigModal: React.FC<{
             <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg border border-slate-700">
                 <h2 className="text-2xl font-semibold mb-4 text-white">Configurar Publicação Automática</h2>
                 <p className="text-slate-400 mb-4 text-sm">Insira seu Token de Acesso Pessoal (PAT) do GitHub para ativar a publicação automática. Seu registro foi salvo localmente e será publicado na próxima atualização.</p>
+                
+                <div className="bg-yellow-900/50 border border-yellow-700 text-yellow-200 text-sm rounded-md p-3 my-4">
+                    <p className="font-bold">Aviso de Segurança</p>
+                    <p>O Token de Acesso Pessoal é armazenado no seu navegador. Embora conveniente, isso apresenta um risco de segurança se seu computador for comprometido. Use um token com as permissões mínimas necessárias (escopo `repo`) e considere revogá-lo periodicamente.</p>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Token de Acesso Pessoal (PAT)</label>
@@ -136,12 +143,10 @@ const AddRecordSection: React.FC<AddRecordSectionProps> = ({ onAdd, allTechnicia
     
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: new Date(value + 'T00:00:00') }));
+        if (value) {
+            setFormData(prev => ({ ...prev, [name]: parseDateFromInput(value) }));
+        }
     };
-
-    const dateToInputValue = (date: Date) => {
-        return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    }
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -156,7 +161,7 @@ const AddRecordSection: React.FC<AddRecordSectionProps> = ({ onAdd, allTechnicia
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Data</label>
-                        <input type="date" name="Data" onChange={handleDateChange} value={dateToInputValue(formData.Data)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
+                        <input type="date" name="Data" onChange={handleDateChange} value={formatDateForInput(formData.Data)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Cliente</label>
@@ -217,7 +222,7 @@ interface ComponentReplacementSectionProps {
 
 const ComponentReplacementSection: React.FC<ComponentReplacementSectionProps> = ({ records, onAdd, clients, components }) => {
     const initialFormState = {
-        Data: new Date().toISOString().split('T')[0],
+        Data: formatDateForInput(new Date()),
         Cliente: '',
         Componente: components[0] as ComponentType,
         OBS: ''
@@ -233,7 +238,7 @@ const ComponentReplacementSection: React.FC<ComponentReplacementSectionProps> = 
         e.preventDefault();
         onAdd({
             ...formData,
-            Data: new Date(formData.Data + 'T00:00:00'),
+            Data: parseDateFromInput(formData.Data),
             Componente: formData.Componente as ComponentType,
         });
         setFormData(initialFormState);

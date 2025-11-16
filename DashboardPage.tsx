@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-// Fix: Import ComponentReplacementRecord to properly type component props.
 import { MaintenanceRecord, ComponentReplacementRecord } from './types';
+import { formatDateForInput, parseDateFromInput } from './utils';
 
 declare var XLSX: any;
 
@@ -81,15 +81,9 @@ const FullEditRecordModal: React.FC<{
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: new Date(value + 'T00:00:00') }));
-    };
-
-    const dateToInputValue = (date: Date) => {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const day = d.getDate().toString().padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        if (value) {
+            setFormData(prev => ({ ...prev, [name]: parseDateFromInput(value) }));
+        }
     };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -105,7 +99,7 @@ const FullEditRecordModal: React.FC<{
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Data</label>
-                            <input type="date" name="Data" onChange={handleDateChange} value={dateToInputValue(formData.Data)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
+                            <input type="date" name="Data" onChange={handleDateChange} value={formatDateForInput(formData.Data)} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Cliente</label>
@@ -304,8 +298,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         const years = new Set(maintenanceData.map(r => new Date(r.Data).getFullYear()));
         return {
             uniqueClients: Array.from(clients).sort(),
-            // FIX: The `sort` function's arguments might not be inferred as numbers,
-            // causing a type error. Explicitly cast to Number to ensure correct subtraction.
             uniqueYears: Array.from(years).sort((a, b) => Number(b) - Number(a))
         };
     }, [maintenanceData]);
@@ -457,34 +449,42 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredData.slice(0, visibleRecordsCount).map(record => (
-                                        <tr 
-                                            key={record.ID} 
-                                            id={`record-${record.ID}`}
-                                            className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
-                                            <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{new Date(record.Data).toLocaleDateString('pt-BR')}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${record.Status === 'Concluído' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                                    {record.Status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">{record.Cliente}</td>
-                                            <td className="px-6 py-4">{record.HoraInicio || '-'}</td>
-                                            <td className="px-6 py-4">{record.HoraFim || '-'}</td>
-                                            <td className="px-6 py-4">{record.Serviço}</td>
-                                            <td className="px-6 py-4 max-w-xs truncate" title={record.Pendencia}>{record.Pendencia || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {userRole === 'admin' && (
-                                                    <div className="flex items-center gap-4">
-                                                        <button onClick={() => onOpenFullEditModal(record)} className="font-medium text-cyan-500 hover:underline">Editar</button>
-                                                        {record.Status === 'Pendente' && <button onClick={() => onOpenEditModal(record)} className="font-medium text-amber-500 hover:underline">Concluir</button>}
-                                                        <button onClick={() => handleOpenDeleteModal(record)} className="font-medium text-red-500 hover:underline">Excluir</button>
-                                                    </div>
-                                                )}
+                                    {filteredData.length === 0 ? (
+                                        <tr className="bg-slate-800 border-b border-slate-700">
+                                            <td colSpan={9} className="text-center px-6 py-10 text-slate-400">
+                                                Nenhum registro encontrado para os filtros selecionados.
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        filteredData.slice(0, visibleRecordsCount).map(record => (
+                                            <tr 
+                                                key={record.ID} 
+                                                id={`record-${record.ID}`}
+                                                className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
+                                                <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">{new Date(record.Data).toLocaleDateString('pt-BR')}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${record.Status === 'Concluído' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                                        {record.Status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">{record.Cliente}</td>
+                                                <td className="px-6 py-4">{record.HoraInicio || '-'}</td>
+                                                <td className="px-6 py-4">{record.HoraFim || '-'}</td>
+                                                <td className="px-6 py-4">{record.Serviço}</td>
+                                                <td className="px-6 py-4 max-w-xs truncate" title={record.Pendencia}>{record.Pendencia || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {userRole === 'admin' && (
+                                                        <div className="flex items-center gap-4">
+                                                            <button onClick={() => onOpenFullEditModal(record)} className="font-medium text-cyan-500 hover:underline">Editar</button>
+                                                            {record.Status === 'Pendente' && <button onClick={() => onOpenEditModal(record)} className="font-medium text-amber-500 hover:underline">Concluir</button>}
+                                                            <button onClick={() => handleOpenDeleteModal(record)} className="font-medium text-red-500 hover:underline">Excluir</button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

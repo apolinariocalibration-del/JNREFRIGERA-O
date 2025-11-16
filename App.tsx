@@ -38,7 +38,8 @@ const App = () => {
                 try {
                     const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
                     const response = await fetch(githubApiUrl, {
-                        headers: { 'Accept': 'application/vnd.github.v3+json' }
+                        headers: { 'Accept': 'application/vnd.github.v3+json' },
+                        cache: 'no-cache' // Bypass caches to get the latest data
                     });
                     if (response.ok) {
                         const fileData = await response.json();
@@ -105,7 +106,8 @@ const App = () => {
             try {
                 const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json`;
                 const response = await fetch(`${githubApiUrl}?t=${new Date().getTime()}`, {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                    headers: { 'Accept': 'application/vnd.github.v3+json' },
+                    cache: 'no-cache' // Bypass caches to ensure fresh data
                 });
 
                 if (!response.ok) {
@@ -175,8 +177,16 @@ const App = () => {
         setUserRole(null);
     };
 
+    const handleClearFilters = () => {
+        setClientFilter('all');
+        setStatusFilter('all');
+        setMonthFilter('all');
+        setYearFilter('all');
+    };
 
     const handleAddRecord = async (newRecordData: Omit<MaintenanceRecord, 'ID' | 'Status'>) => {
+        handleClearFilters(); // Limpa filtros antigos para garantir que o novo registro seja visível
+
         const isNewClient = !maintenanceData.some(record => record.Cliente === newRecordData.Cliente);
 
         const nextId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) + 1 : 1;
@@ -271,13 +281,6 @@ const App = () => {
     const handleStatusFilterChange = (status: string) => setStatusFilter(status);
     const handleMonthFilterChange = (month: string) => setMonthFilter(month);
     const handleYearFilterChange = (year: string) => setYearFilter(year);
-
-    const handleClearFilters = () => {
-        setClientFilter('all');
-        setStatusFilter('all');
-        setMonthFilter('all');
-        setYearFilter('all');
-    };
 
     const filteredMaintenanceData = useMemo(() => {
         return maintenanceData.filter(record => {
