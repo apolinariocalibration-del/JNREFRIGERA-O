@@ -40,3 +40,7 @@ export interface ComponentReplacementRecord {
     Componente: ComponentType;
     OBS: string;
 }
+
+export interface GitHubTokenConfig {
+    token: string;
+}

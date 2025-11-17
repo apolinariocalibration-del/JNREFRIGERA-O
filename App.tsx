@@ -1,29 +1,24 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MaintenanceRecord, ComponentReplacementRecord } from './types';
+import { MaintenanceRecord, ComponentReplacementRecord, GitHubTokenConfig } from './types';
 import DashboardPage from './DashboardPage';
 import AddRecordPage from './AddRecordPage';
 import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
 import * as db from './db';
-import { GITHUB_CONFIG } from './config';
+import { GITHUB_CONFIG, GITHUB_CONSTANTS } from './config';
 import { normalizeTechnicianName } from './utils';
+
+// --- HELPER FUNCTIONS ---
 
 // Helper to decode base64 content from GitHub API using modern, robust methods.
 const decodeGitHubFileContent = (base64: string): any => {
     try {
-        // Step 1: Trim whitespace and decode Base64 to a binary string
         const binaryString = window.atob(base64.trim());
-        
-        // Step 2: Convert the binary string to a Uint8Array
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
         }
-
-        // Step 3: Decode the Uint8Array as a UTF-8 string
         const decodedString = new TextDecoder('utf-8').decode(bytes);
-        
-        // Step 4: Parse the JSON string
         return JSON.parse(decodedString);
     } catch (e) {
         console.error("Failed to decode or parse GitHub file content:", e);
@@ -34,482 +29,594 @@ const decodeGitHubFileContent = (base64: string): any => {
     }
 };
 
+// Helper to convert a UTF-8 string to a Base64 string.
+const utf8ToBase64 = (str: string): string => {
+    const bytes = new TextEncoder().encode(str);
+    let binaryString = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binaryString += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binaryString);
+};
+
+const sortByDateDesc = <T extends { Data: Date }>(a: T, b: T) => new Date(b.Data).getTime() - new Date(a.Data).getTime();
+
+
+// --- MODAL COMPONENTS ---
+
+const GitHubConfigModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (config: GitHubTokenConfig | null) => void;
+    initialConfig: GitHubTokenConfig | null;
+}> = ({ isOpen, onClose, onSave, initialConfig }) => {
+    const [config, setConfig] = useState<GitHubTokenConfig>(initialConfig || { token: '' });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setConfig(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(config);
+    };
+
+    const handleRemove = () => {
+        localStorage.removeItem(GITHUB_CONSTANTS.TOKEN_KEY);
+        onSave(null);
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg border border-slate-700">
+                <h2 className="text-2xl font-semibold mb-4 text-white">Configurar Publicação Automática</h2>
+                <p className="text-slate-400 mb-4 text-sm">Insira seu Token de Acesso Pessoal (PAT) do GitHub para ativar a publicação automática. Seu registro foi salvo localmente e será publicado na próxima atualização.</p>
+                <div className="bg-yellow-900/50 border border-yellow-700 text-yellow-200 text-sm rounded-md p-3 my-4">
+                    <p className="font-bold">Aviso de Segurança</p>
+                    <p>O Token é armazenado no seu navegador. Use um token com as permissões mínimas (`repo`) e considere revogá-lo periodicamente.</p>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">Token de Acesso Pessoal (PAT)</label>
+                        <input type="password" name="token" value={config.token} onChange={handleChange} placeholder="cole seu token aqui" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
+                        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">Como criar um token? (Requer escopo `repo`)</a>
+                    </div>
+                    <div className="flex justify-between items-center pt-4">
+                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover Token</button>
+                        <div className="flex gap-2">
+                             <button type="button" onClick={onClose} className="px-5 py-2 bg-slate-600 hover:bg-slate-500 rounded-md font-semibold">Cancelar</button>
+                             <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-md font-semibold text-white">Salvar</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const PublishStatusModal: React.FC<{ status: 'idle' | 'publishing' | 'success' | 'error'; message: string; onClose: () => void }> = ({ status, message, onClose }) => {
+    if (status === 'idle') return null;
+
+    const Icon = () => {
+        switch (status) {
+            case 'publishing': return <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>;
+            case 'success': return <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
+            case 'error': return <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+            default: return null;
+        }
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-sm border border-slate-700 text-center">
+                <div className="flex justify-center mb-4"><Icon /></div>
+                <p className="text-white font-semibold mb-2">{message}</p>
+                {(status === 'success' || status === 'error') && (
+                    <button onClick={onClose} className="mt-4 px-5 py-2 bg-slate-600 hover:bg-slate-500 rounded-md font-semibold text-sm">Fechar</button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
 // Main App Component
 const App = () => {
     const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord[]>([]);
     const [componentReplacements, setComponentReplacements] = useState<ComponentReplacementRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState<'viewer' | 'admin' | null>(null);
+    const [loginError, setLoginError] = useState<string | null>(null);
     const dataFileShaRef = useRef<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
-
-    // Fetches the latest data from GitHub, compares SHAs, and updates state if necessary.
-    const fetchLatestData = async (isManual: boolean = false): Promise<'success' | 'no-changes' | 'error'> => {
-        const { OWNER, REPO } = GITHUB_CONFIG;
-        if (OWNER === 'SEU_USUARIO_GITHUB' || REPO === 'SEU_REPOSITORIO_GITHUB') {
-            if (isManual) setRefreshMessage("Erro de configuração.");
-            console.error("GitHub config not set.");
-            return 'error';
-        }
-        
+    // --- GitHub Sync State ---
+    const [githubConfig, setGithubConfig] = useState<GitHubTokenConfig | null>(() => {
         try {
-            const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json?t=${new Date().getTime()}`;
-            const response = await fetch(githubApiUrl, {
-                headers: { 'Accept': 'application/vnd.github.v3+json' },
-                cache: 'no-store'
-            });
-
-            if (!response.ok) {
-                throw new Error(`GitHub API request failed with status ${response.status}`);
-            }
-
-            const fileData = await response.json();
-            const newSha = fileData.sha;
-
-            if (newSha && newSha !== dataFileShaRef.current) {
-                console.log(`New data detected (SHA: ${newSha}). Updating state.`);
-                dataFileShaRef.current = newSha;
-
-                const data = decodeGitHubFileContent(fileData.content);
-                if (!data) throw new Error("Failed to decode new data from GitHub.");
-            
-                const newMaintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-                const newCompData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-
-                setMaintenanceData(newMaintData);
-                setComponentReplacements(newCompData);
-                await db.saveAllMaintenanceRecords(newMaintData);
-                await db.saveAllComponentReplacements(newCompData);
-                return 'success';
-            } else {
-                console.log("No new data found.");
-                return 'no-changes';
-            }
-        } catch (error) {
-            console.error('Data fetch failed:', error);
-            return 'error';
+            const stored = localStorage.getItem(GITHUB_CONSTANTS.TOKEN_KEY);
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
         }
-    };
+    });
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+    const [publishStatus, setPublishStatus] = useState<'idle' | 'publishing' | 'success' | 'error'>('idle');
+    const [publishMessage, setPublishMessage] = useState('');
 
-    // Handler for the manual refresh button
-    const handleManualRefresh = async () => {
-        if (isRefreshing) return;
-        setIsRefreshing(true);
-        setRefreshMessage(null);
-
-        const status = await fetchLatestData(true);
-
-        switch (status) {
-            case 'success':
-                setRefreshMessage("Dados atualizados com sucesso!");
-                break;
-            case 'no-changes':
-                setRefreshMessage("Nenhuma alteração encontrada.");
-                break;
-            case 'error':
-                setRefreshMessage("Erro ao atualizar. Tente novamente.");
-                break;
-        }
-
-        setIsRefreshing(false);
-        setTimeout(() => setRefreshMessage(null), 4000);
-    };
-
-    // Effect to load data from the definitive source (GitHub) on mount, with fallbacks.
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            let data = null;
-            const { OWNER, REPO } = GITHUB_CONFIG;
-
-            // 1. Try to fetch from GitHub API (the single source of truth) if configured
-            if (OWNER !== 'SEU_USUARIO_GITHUB' && REPO !== 'SEU_REPOSITORIO_GITHUB') {
-                try {
-                    const githubApiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/public/data.json?t=${new Date().getTime()}`;
-                    const response = await fetch(githubApiUrl, {
-                        headers: { 'Accept': 'application/vnd.github.v3+json' },
-                        cache: 'no-store' // Force fresh data, bypassing all caches
-                    });
-                    if (response.ok) {
-                        const fileData = await response.json();
-                        dataFileShaRef.current = fileData.sha; // Store the initial SHA
-                        data = decodeGitHubFileContent(fileData.content);
-                        if (data) {
-                            console.log("Successfully loaded data from GitHub API.");
-                        }
-                    } else {
-                         console.warn(`GitHub API fetch failed with status ${response.status}. This may be due to an incorrect repo/owner name in config.ts, or the repository being private.`);
-                    }
-                } catch (e) {
-                    console.error("Error fetching from GitHub API:", e);
-                }
-            } else {
-                 console.warn("GitHub config not set in config.ts. Real-time updates are disabled. Falling back to local data.");
-            }
-
-            // 2. If GitHub fails or no config, try local data.json (from deployment)
-            if (!data) {
-                try {
-                    const response = await fetch(`/data.json?t=${new Date().getTime()}`);
-                    if (response.ok) {
-                        data = await response.json();
-                        console.log("Loaded data from local /data.json");
-                    }
-                } catch (e) {
-                    console.error("Error fetching local /data.json:", e);
-                }
-            }
-            
-            // Process and save data if fetched, otherwise load from local DB
-            if (data) {
-                const maintData = (data.maintenanceRecords || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-                const compData = (data.componentReplacements || []).map(r => ({ ...r, Data: new Date(r.Data) }));
-                setMaintenanceData(maintData);
-                setComponentReplacements(compData);
-                await db.saveAllMaintenanceRecords(maintData);
-                await db.saveAllComponentReplacements(compData);
-            } else {
-                // 3. Fallback to local storage
-                console.warn('All fetch attempts failed. Loading from local storage.');
-                const maintData = await db.getMaintenanceRecords();
-                const compData = await db.getComponentReplacements();
-                setMaintenanceData(maintData);
-                setComponentReplacements(compData);
-            }
-
-            setIsLoading(false);
-        };
-        loadData();
-    }, []); // Run only once on mount
-
-    // Effect for polling GitHub for new data every ~60 seconds
-    useEffect(() => {
-        if (!userRole) return;
-
-        const pollData = async () => {
-            await fetchLatestData();
-        };
-
-        const intervalId = setInterval(pollData, 61000);
-        return () => clearInterval(intervalId);
-
-    }, [userRole]); // Dependency array ensures polling starts on login and stops on logout.
-
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
-    const [isFullEditModalOpen, setIsFullEditModalOpen] = useState(false);
-    const [recordToEdit, setRecordToEdit] = useState<MaintenanceRecord | null>(null);
-    const [currentPage, setCurrentPage] = useState('dashboard'); // 'dashboard', 'charts', or 'addRecord'
+    // --- Filtering State ---
     const [clientFilter, setClientFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [monthFilter, setMonthFilter] = useState('all');
     const [yearFilter, setYearFilter] = useState('all');
-    const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
-    const [loginError, setLoginError] = useState<string | null>(null);
 
+    // --- Edit Modal State ---
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
+    
+    // --- Full Edit Modal State ---
+    const [isFullEditModalOpen, setIsFullEditModalOpen] = useState(false);
+    const [recordToEdit, setRecordToEdit] = useState<MaintenanceRecord | null>(null);
+
+    // --- Navigation State ---
+    const [currentPage, setCurrentPage] = useState('dashboard');
+    const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
+
+
+    const fetchData = async (isManualRefresh = false) => {
+        if (!isManualRefresh) setIsLoading(true);
+        else {
+            setIsRefreshing(true);
+            setRefreshMessage("Sincronizando com o servidor...");
+        }
+
+        let dataFromSource: { maintenanceRecords: any[], componentReplacements: any[] } | null = null;
+        let source = "Cache Local";
+
+        const tokenConfig = githubConfig;
+        const canFetchFromGitHub = GITHUB_CONFIG.OWNER && GITHUB_CONFIG.REPO && tokenConfig && tokenConfig.token;
+
+        if (canFetchFromGitHub) {
+            try {
+                const headers: HeadersInit = { 'Authorization': `token ${tokenConfig.token}` };
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
+                const response = await fetch(url, { headers, cache: "no-store" });
+                
+                if (response.status === 403) {
+                     console.error("Data fetch failed: GitHub API rate limit likely exceeded or token permissions are insufficient.");
+                     if(isManualRefresh) setRefreshMessage("Erro: Limite de taxa da API do GitHub excedido.");
+                }
+
+                if (!response.ok) {
+                    throw new Error(`GitHub API request failed with status ${response.status}`);
+                }
+
+                const fileData = await response.json();
+                dataFileShaRef.current = fileData.sha;
+                dataFromSource = decodeGitHubFileContent(fileData.content);
+                source = "GitHub";
+
+            } catch (error) {
+                console.error("Failed to fetch from GitHub, falling back to local data:", error);
+                 if (isManualRefresh) setRefreshMessage("Falha ao buscar do GitHub. Usando dados locais.");
+            }
+        }
+        
+        if (!dataFromSource) {
+            try {
+                const response = await fetch(`/${GITHUB_CONSTANTS.FILE_PATH}`);
+                if (!response.ok) throw new Error("Local data file not found.");
+                dataFromSource = await response.json();
+                source = "Arquivo Local (Base)";
+            } catch (error) {
+                console.error("Failed to fetch local data file:", error);
+                 if (isManualRefresh) setRefreshMessage("Erro ao carregar dados locais.");
+            }
+        }
+
+        if (dataFromSource) {
+            const maintenance = (dataFromSource.maintenanceRecords || [])
+                .map((r: any) => ({ ...r, Data: new Date(r.Data) }))
+                .sort(sortByDateDesc);
+            const components = (dataFromSource.componentReplacements || [])
+                .map((r: any) => ({ ...r, Data: new Date(r.Data) }))
+                .sort(sortByDateDesc);
+
+            setMaintenanceData(maintenance);
+            setComponentReplacements(components);
+            await db.saveAllMaintenanceRecords(maintenance);
+            await db.saveAllComponentReplacements(components);
+            if (isManualRefresh) setRefreshMessage(`Dados sincronizados via ${source}!`);
+        }
+        
+        if (isManualRefresh) {
+            setTimeout(() => {
+                setIsRefreshing(false);
+                setRefreshMessage(null);
+            }, 2000);
+        }
+
+        setIsLoading(false);
+    };
+
+    const publishData = async (
+        updatedMaintenance: MaintenanceRecord[],
+        updatedComponents: ComponentReplacementRecord[]
+    ): Promise<boolean> => {
+        if (!githubConfig?.token) {
+            console.warn("GitHub token not configured. Opening config modal.");
+            setIsConfigModalOpen(true);
+            return false;
+        }
+
+        setPublishStatus('publishing');
+        setPublishMessage('Publicando alterações...');
+
+        try {
+            // Get latest SHA again before pushing
+            const shaUrl = `https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
+            const shaResponse = await fetch(shaUrl, { headers: { 'Authorization': `token ${githubConfig.token}` } });
+            if (!shaResponse.ok) throw new Error("Failed to get latest file SHA before publishing.");
+            const fileData = await shaResponse.json();
+            const latestSha = fileData.sha;
+
+            const content = {
+                maintenanceRecords: updatedMaintenance,
+                componentReplacements: updatedComponents
+            };
+
+            const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONSTANTS.FILE_PATH}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `[BOT] Atualização de dados em ${new Date().toISOString()}`,
+                    content: utf8ToBase64(JSON.stringify(content, null, 2)),
+                    sha: latestSha
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`GitHub API Error: ${errorData.message || 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+            dataFileShaRef.current = result.content.sha;
+            
+            setPublishStatus('success');
+            setPublishMessage('Dados publicados com sucesso!');
+            return true;
+
+        } catch (error) {
+            console.error('Failed to publish data:', error);
+            setPublishStatus('error');
+            setPublishMessage(`Falha na publicação: ${error.message}`);
+            return false;
+        }
+    };
+    
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(() => {
+            console.log("Refreshing data automatically...");
+            fetchData(true);
+        }, 5 * 60 * 1000); // every 5 minutes
+
+        const handleStorageChange = (event: StorageEvent) => {
+             if (event.key === GITHUB_CONSTANTS.TOKEN_KEY) {
+                const newConfig = event.newValue ? JSON.parse(event.newValue) : null;
+                setGithubConfig(newConfig);
+             }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
+
+    // --- HANDLER FUNCTIONS ---
+    
     const handleLogin = (user: string, pass: string) => {
-        if (user.trim() === 'JN' && pass.trim() === '123') {
-            setUserRole('viewer');
-            setLoginError(null);
-            setCurrentPage('dashboard');
-        } else if (user.trim() === 'apolinario' && pass.trim() === 'henzo2505') {
+        const normalizedUser = user.trim().toLowerCase();
+        const normalizedPass = pass.trim();
+
+        // Nível 2 (Admin) - Acesso total
+        if (normalizedUser === 'apolinario' && normalizedPass === 'Enzo2523') {
             setUserRole('admin');
             setLoginError(null);
-            setCurrentPage('dashboard');
+        // Nível 1 (Visualizador) - Acesso limitado
+        } else if (normalizedUser === 'jn' && normalizedPass === '123') {
+            setUserRole('viewer');
+            setLoginError(null);
         } else {
-            setLoginError('Usuário ou senha inválidos.');
+            setLoginError("Usuário ou senha inválidos.");
+        }
+    };
+    
+    const handleLogout = () => {
+        setUserRole(null);
+        setLoginError(null);
+    };
+
+    const handleSaveConfig = (config: GitHubTokenConfig | null) => {
+        setGithubConfig(config);
+        if (config) {
+            localStorage.setItem(GITHUB_CONSTANTS.TOKEN_KEY, JSON.stringify(config));
+        } else {
+            localStorage.removeItem(GITHUB_CONSTANTS.TOKEN_KEY);
+        }
+        setIsConfigModalOpen(false);
+    };
+
+    const handleAddRecord = async (record: Omit<MaintenanceRecord, 'ID' | 'Status'>) => {
+        const newId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) + 1 : 1;
+        const newRecord: MaintenanceRecord = {
+            ...record,
+            ID: newId,
+            Status: record.Pendencia ? 'Pendente' : 'Concluído'
+        };
+        const updatedData = [newRecord, ...maintenanceData].sort(sortByDateDesc);
+        setMaintenanceData(updatedData);
+        await db.saveAllMaintenanceRecords(updatedData);
+        
+        const success = await publishData(updatedData, componentReplacements);
+        if (success) {
+            setNewlyAddedRecordId(newId);
+            setCurrentPage('dashboard');
         }
     };
 
-    const handleLogout = () => {
-        setUserRole(null);
+    const handleAddComponentReplacement = async (record: Omit<ComponentReplacementRecord, 'ID'>) => {
+        const newId = componentReplacements.length > 0 ? Math.max(...componentReplacements.map(r => r.ID)) + 1 : 1;
+        const newRecord: ComponentReplacementRecord = { ...record, ID: newId };
+        
+        const updatedData = [newRecord, ...componentReplacements].sort(sortByDateDesc);
+        setComponentReplacements(updatedData);
+        await db.saveAllComponentReplacements(updatedData);
+
+        await publishData(maintenanceData, updatedData);
     };
 
-    const handleClearFilters = () => {
+    const handleUpdateRecord = async (id: number, updatedData: { Pendencia: string; OBS: string }) => {
+        const updatedRecords = maintenanceData.map(record => {
+            if (record.ID === id) {
+                return {
+                    ...record,
+                    Pendencia: updatedData.Pendencia,
+                    OBS: record.OBS ? `${record.OBS}\n[CONCLUÍDO] ${updatedData.OBS}` : `[CONCLUÍDO] ${updatedData.OBS}`,
+                    // FIX: Use 'as const' to ensure TypeScript infers the correct literal type for Status,
+                    // preventing it from being widened to a generic 'string'.
+                    Status: updatedData.Pendencia ? 'Pendente' as const : 'Concluído' as const
+                };
+            }
+            return record;
+        });
+
+        setMaintenanceData(updatedRecords);
+        await db.saveAllMaintenanceRecords(updatedRecords);
+        await publishData(updatedRecords, componentReplacements);
+        onCloseEditModal();
+    };
+    
+    const handleUpdateFullRecord = async (updatedRecord: MaintenanceRecord) => {
+        // Fix: Avoid mutation by creating a new object with the correct Status type inside the map.
+        const updatedRecords = maintenanceData.map(record =>
+            record.ID === updatedRecord.ID 
+                ? { 
+                    ...updatedRecord, 
+                    // Also update status based on pendency
+                    // FIX: Use 'as const' to ensure TypeScript infers the correct literal type for Status,
+                    // preventing it from being widened to a generic 'string'.
+                    Status: updatedRecord.Pendencia ? 'Pendente' as const : 'Concluído' as const
+                } 
+                : record
+        );
+
+        setMaintenanceData(updatedRecords);
+        await db.saveAllMaintenanceRecords(updatedRecords);
+        await publishData(updatedRecords, componentReplacements);
+        onCloseFullEditModal();
+    };
+
+    const handleDeleteRecord = async (id: number) => {
+        const updatedRecords = maintenanceData.filter(record => record.ID !== id);
+        setMaintenanceData(updatedRecords);
+        await db.saveAllMaintenanceRecords(updatedRecords);
+        await publishData(updatedRecords, componentReplacements);
+    };
+
+    // --- MODAL OPEN/CLOSE ---
+    const onOpenEditModal = (record: MaintenanceRecord) => {
+        setCurrentRecord(record);
+        setIsEditModalOpen(true);
+    };
+    const onCloseEditModal = () => {
+        setIsEditModalOpen(false);
+        setCurrentRecord(null);
+    };
+    
+    const onOpenFullEditModal = (record: MaintenanceRecord) => {
+        setRecordToEdit(record);
+        setIsFullEditModalOpen(true);
+    };
+    const onCloseFullEditModal = () => {
+        setIsFullEditModalOpen(false);
+        setRecordToEdit(null);
+    };
+
+    // --- DERIVED STATE ---
+    const filteredData = useMemo(() => {
+        return maintenanceData
+            .filter(record => clientFilter === 'all' || record.Cliente === clientFilter)
+            .filter(record => statusFilter === 'all' || record.Status === statusFilter)
+            .filter(record => {
+                if (yearFilter === 'all') return true;
+                return new Date(record.Data).getUTCFullYear().toString() === yearFilter;
+            })
+            .filter(record => {
+                if (monthFilter === 'all') return true;
+                return (new Date(record.Data).getUTCMonth() + 1).toString() === monthFilter;
+            });
+    }, [maintenanceData, clientFilter, statusFilter, monthFilter, yearFilter]);
+
+    const filteredComponentReplacements = useMemo(() => {
+        const filteredClients = new Set(filteredData.map(r => r.Cliente));
+        return componentReplacements.filter(comp => {
+            const recordDate = new Date(comp.Data);
+            const yearMatch = yearFilter === 'all' || recordDate.getUTCFullYear().toString() === yearFilter;
+            const monthMatch = monthFilter === 'all' || (recordDate.getUTCMonth() + 1).toString() === monthFilter;
+            const clientMatch = clientFilter === 'all' || comp.Cliente === clientFilter;
+            
+            // If client filter is active, only match components for that client.
+            if(clientFilter !== 'all'){
+                return clientMatch && yearMatch && monthMatch;
+            }
+            // Otherwise, match components for all clients visible in the filtered maintenance data.
+            return filteredClients.has(comp.Cliente) && yearMatch && monthMatch;
+        });
+    }, [filteredData, componentReplacements, clientFilter, monthFilter, yearFilter]);
+    
+    const clearFilters = () => {
         setClientFilter('all');
         setStatusFilter('all');
         setMonthFilter('all');
         setYearFilter('all');
     };
 
-    const handleAddRecord = async (newRecordData: Omit<MaintenanceRecord, 'ID' | 'Status'>) => {
-        handleClearFilters(); // Limpa filtros antigos para garantir que o novo registro seja visível
-
-        const isNewClient = !maintenanceData.some(record => record.Cliente === newRecordData.Cliente);
-
-        const nextId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) + 1 : 1;
-        const newRecord: MaintenanceRecord = {
-            ...newRecordData,
-            ID: nextId,
-            Status: newRecordData.Pendencia.trim() ? 'Pendente' : 'Concluído',
-        };
-        
-        const newMaintenanceData = [newRecord, ...maintenanceData];
-        await db.saveAllMaintenanceRecords(newMaintenanceData);
-        setMaintenanceData(newMaintenanceData);
-        setNewlyAddedRecordId(nextId);
-        setCurrentPage('dashboard');
-        
-        if (isNewClient) {
-            setClientFilter(newRecordData.Cliente);
-        }
-    };
-
-    const handleAddComponentReplacement = async (newReplacement: Omit<ComponentReplacementRecord, 'ID'>) => {
-        const nextId = componentReplacements.length > 0 ? Math.max(...componentReplacements.map(r => r.ID)) + 1 : 1;
-        const newRecord = { ...newReplacement, ID: nextId };
-
-        const newComponentData = [...componentReplacements, newRecord];
-        await db.saveAllComponentReplacements(newComponentData);
-        setComponentReplacements(newComponentData);
-    };
+    if (!userRole) return <LoginPage onLogin={handleLogin} error={loginError} />;
     
-    // Callback to synchronize the local SHA ref after a successful publish.
-    const handlePublishSuccess = (newSha: string) => {
-        console.log(`Publication successful. Syncing new SHA: ${newSha}`);
-        dataFileShaRef.current = newSha;
-    };
-
-    const handleUpdateRecord = async (id: number, updatedData: { Pendencia: string, OBS: string }) => {
-        const newMaintenanceData = maintenanceData.map(record => {
-            if (record.ID === id) {
-                const newStatus: 'Concluído' | 'Pendente' = updatedData.Pendencia.trim() === '' ? 'Concluído' : 'Pendente';
-                return {
-                    ...record,
-                    Pendencia: updatedData.Pendencia,
-                    OBS: record.OBS ? `${record.OBS}\n${updatedData.OBS}` : updatedData.OBS,
-                    Status: newStatus,
-                };
-            }
-            return record;
-        });
-
-        await db.saveAllMaintenanceRecords(newMaintenanceData);
-        setMaintenanceData(newMaintenanceData);
-        setIsEditModalOpen(false);
-        setCurrentRecord(null);
-    };
-
-    const handleUpdateFullRecord = async (updatedRecord: MaintenanceRecord) => {
-        // Normalize technician names before saving the update
-        if (updatedRecord.Equipe) {
-            const normalizedTeam = updatedRecord.Equipe
-                .split(/[\\\/]/)
-                .map(name => normalizeTechnicianName(name.trim())) // Normalize each name
-                .join(' / '); // Re-join with a consistent separator
-            updatedRecord.Equipe = normalizedTeam;
-        }
-
-        const newStatus: 'Concluído' | 'Pendente' = updatedRecord.Pendencia.trim() === '' ? 'Concluído' : 'Pendente';
-        const finalRecord = { ...updatedRecord, Status: newStatus };
-        
-        const newMaintenanceData = maintenanceData.map(record =>
-            record.ID === finalRecord.ID ? finalRecord : record
-        );
-        
-        await db.saveAllMaintenanceRecords(newMaintenanceData);
-        setMaintenanceData(newMaintenanceData);
-        setIsFullEditModalOpen(false);
-        setRecordToEdit(null);
-    };
-    
-    const handleOpenEditModal = (record: MaintenanceRecord) => {
-        setCurrentRecord(record);
-        setIsEditModalOpen(true);
-    };
-
-    const handleCloseEditModal = () => {
-        setIsEditModalOpen(false);
-        setCurrentRecord(null);
-    };
-
-    const handleOpenFullEditModal = (record: MaintenanceRecord) => {
-        setRecordToEdit(record);
-        setIsFullEditModalOpen(true);
-    };
-
-    const handleCloseFullEditModal = () => {
-        setIsFullEditModalOpen(false);
-        setRecordToEdit(null);
-    };
-
-    const handleDeleteRecord = async (idToDelete: number) => {
-        const newMaintenanceData = maintenanceData.filter(record => record.ID !== idToDelete);
-        await db.saveAllMaintenanceRecords(newMaintenanceData);
-        setMaintenanceData(newMaintenanceData);
-    };
-
-    const handleClientFilterChange = (client: string) => setClientFilter(client);
-    const handleStatusFilterChange = (status: string) => setStatusFilter(status);
-    const handleMonthFilterChange = (month: string) => setMonthFilter(month);
-    const handleYearFilterChange = (year: string) => setYearFilter(year);
-
-    const filteredMaintenanceData = useMemo(() => {
-        return maintenanceData.filter(record => {
-            const recordDate = new Date(record.Data);
-            const clientMatch = clientFilter === 'all' || record.Cliente === clientFilter;
-            const statusMatch = statusFilter === 'all' || record.Status === statusFilter;
-            const yearMatch = yearFilter === 'all' || recordDate.getFullYear() === parseInt(yearFilter, 10);
-            const monthMatch = monthFilter === 'all' || recordDate.getMonth() + 1 === parseInt(monthFilter, 10);
-            return clientMatch && statusMatch && yearMatch && monthMatch;
-        });
-    }, [maintenanceData, clientFilter, statusFilter, yearFilter, monthFilter]);
-
-    const filteredComponentReplacements = useMemo(() => {
-        return componentReplacements.filter(record => {
-            const recordDate = new Date(record.Data);
-            const clientMatch = clientFilter === 'all' || record.Cliente === clientFilter;
-            const yearMatch = yearFilter === 'all' || recordDate.getFullYear() === parseInt(yearFilter, 10);
-            const monthMatch = monthFilter === 'all' || recordDate.getMonth() + 1 === parseInt(monthFilter, 10);
-            return clientMatch && yearMatch && monthMatch;
-        });
-    }, [componentReplacements, clientFilter, yearFilter, monthFilter]);
-
-
-    const NavButton = ({ page, label }: { page: string, label: string }) => {
-        const isActive = currentPage === page;
-        return (
-            <button
-                onClick={() => setCurrentPage(page)}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                    isActive
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                }`}
-            >
-                {label}
-            </button>
-        );
-    };
-
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-                <div className="text-center">
-                    <span className="text-6xl animate-pulse">❄️</span>
-                    <h1 className="text-3xl font-bold text-white mt-4">Carregando Dados...</h1>
-                </div>
+            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+                <span className="text-6xl mb-4">❄️</span>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mb-4"></div>
+                <p className="text-lg">Carregando dados...</p>
             </div>
         );
     }
 
-    if (!userRole) {
-        return <LoginPage onLogin={handleLogin} error={loginError} />;
-    }
+    const NavButton: React.FC<{ page: string; label: string; icon: React.ReactNode }> = ({ page, label, icon }) => (
+        <button
+            onClick={() => setCurrentPage(page)}
+            className={`flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${currentPage === page ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'}`}
+        >
+            {icon} {label}
+        </button>
+    );
 
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-200 font-sans">
-        <main className="p-4 sm:p-6 lg:p-8">
-            <header className="flex flex-wrap justify-between items-center mb-8 gap-4 border-b border-slate-700 pb-6">
-                <div className="flex items-center gap-3">
-                    <span className="text-4xl">❄️</span>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">JN Refrigeração Dashboard</h1>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                      <button 
-                          onClick={handleManualRefresh}
-                          disabled={isRefreshing}
-                          className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-slate-700 hover:bg-cyan-600/50 text-slate-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
-                          aria-live="polite"
-                          aria-busy={isRefreshing}
-                          title="Atualizar dados"
-                      >
-                          {isRefreshing ? (
-                              <>
-                                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  <span>Atualizando...</span>
-                              </>
-                          ) : (
-                              <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.186l-1.393.93a5.002 5.002 0 00-8.506-1.543V5a1 1 0 01-2 0V3a1 1 0 011-1zm12 15a1 1 0 01-1-1v-2.101a7.002 7.002 0 01-11.899-2.186l1.393-.93a5.002 5.002 0 008.506 1.543V15a1 1 0 012 0v2a1 1 0 01-1 1z" clipRule="evenodd" />
-                                  </svg>
-                                  <span>Atualizar</span>
-                              </>
-                          )}
-                      </button>
-                      {refreshMessage && (
-                          <div 
-                              className="absolute top-full mt-2 right-0 bg-slate-600 text-white text-xs font-semibold rounded-md py-1.5 px-3 shadow-lg whitespace-nowrap z-20"
-                              role="status"
-                          >
-                              {refreshMessage}
-                          </div>
-                      )}
-                  </div>
-                  <nav className="flex items-center gap-2">
-                      <NavButton page="dashboard" label="Dashboard" />
-                      <NavButton page="charts" label="Gráficos" />
-                      {userRole === 'admin' && <NavButton page="addRecord" label="Adicionar Registros" />}
-                  </nav>
-                  <button 
-                      onClick={handleLogout}
-                      className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-slate-700 hover:bg-red-600/50 text-slate-300"
-                  >
-                      Sair
-                  </button>
-                </div>
-            </header>
+        <>
+            <div className="min-h-screen bg-slate-900 text-slate-200">
+                 <header className="bg-slate-800/50 backdrop-blur-lg border-b border-slate-700 sticky top-0 z-40">
+                    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-16">
+                            <div className="flex items-center gap-4">
+                               <span className="text-2xl">❄️</span>
+                               <h1 className="text-xl font-bold text-white hidden sm:block">JN Refrigeração</h1>
+                            </div>
+                            <nav className="flex items-center gap-2">
+                                <NavButton page="dashboard" label="Dashboard" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>} />
+                                {userRole === 'admin' && <NavButton page="add" label="Adicionar" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>} />}
+                                <NavButton page="charts" label="Gráficos" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>} />
+                            </nav>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => fetchData(true)} className="p-2 rounded-full hover:bg-slate-700 transition-colors" title="Sincronizar dados">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 4h-5v5M4 20h5v-5M12 4V2M12 22v-2M4 12H2M22 12h-2" /></svg>
+                                </button>
+                                {userRole === 'admin' && (
+                                    <button onClick={() => setIsConfigModalOpen(true)} className="p-2 rounded-full hover:bg-slate-700 transition-colors" title="Configurar Publicação">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" /></svg>
+                                    </button>
+                                )}
+                                <button onClick={handleLogout} className="p-2 rounded-full hover:bg-slate-700 transition-colors" title="Sair">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                         {isRefreshing && (
+                             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-slate-700 text-white text-xs px-3 py-1 rounded-b-md shadow-lg">
+                                 {refreshMessage}
+                             </div>
+                         )}
+                    </div>
+                </header>
 
-            {currentPage === 'dashboard' && (
-                <DashboardPage
-                    userRole={userRole} 
-                    maintenanceData={maintenanceData}
-                    filteredData={filteredMaintenanceData}
-                    allComponentReplacements={componentReplacements}
-                    componentReplacements={filteredComponentReplacements}
-                    onOpenEditModal={handleOpenEditModal}
-                    isEditModalOpen={isEditModalOpen}
-                    currentRecord={currentRecord}
-                    onUpdateRecord={handleUpdateRecord}
-                    onCloseEditModal={handleCloseEditModal}
-                    clientFilter={clientFilter}
-                    statusFilter={statusFilter}
-                    monthFilter={monthFilter}
-                    yearFilter={yearFilter}
-                    onClientFilterChange={handleClientFilterChange}
-                    onStatusFilterChange={handleStatusFilterChange}
-                    onMonthFilterChange={handleMonthFilterChange}
-                    onYearFilterChange={handleYearFilterChange}
-                    onOpenFullEditModal={handleOpenFullEditModal}
-                    isFullEditModalOpen={isFullEditModalOpen}
-                    recordToEdit={recordToEdit}
-                    onUpdateFullRecord={handleUpdateFullRecord}
-                    onCloseFullEditModal={handleCloseFullEditModal}
-                    onDeleteRecord={handleDeleteRecord}
-                    newlyAddedRecordId={newlyAddedRecordId}
-                    setNewlyAddedRecordId={setNewlyAddedRecordId}
-                />
-            )}
-            {currentPage === 'charts' && (
-                <ChartsPage 
-                    maintenanceData={filteredMaintenanceData} 
-                    allMaintenanceData={maintenanceData}
-                    componentReplacements={componentReplacements}
-                    clientFilter={clientFilter}
-                    statusFilter={statusFilter}
-                    monthFilter={monthFilter}
-                    yearFilter={yearFilter}
-                    onClearFilters={handleClearFilters}
-                />
-            )}
-            {currentPage === 'addRecord' && userRole === 'admin' && (
-                <AddRecordPage
-                    onAddRecord={handleAddRecord}
-                    onAddComponentReplacement={handleAddComponentReplacement}
-                    componentReplacements={componentReplacements}
-                    maintenanceData={maintenanceData}
-                    onPublishSuccess={handlePublishSuccess}
-                />
-            )}
-        </main>
-      </div>
+                <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+                    {currentPage === 'dashboard' && (
+                        <DashboardPage
+                            userRole={userRole}
+                            maintenanceData={maintenanceData}
+                            filteredData={filteredData}
+                            componentReplacements={filteredComponentReplacements}
+                            allComponentReplacements={componentReplacements}
+                            onOpenEditModal={onOpenEditModal}
+                            isEditModalOpen={isEditModalOpen}
+                            currentRecord={currentRecord}
+                            onUpdateRecord={handleUpdateRecord}
+                            onCloseEditModal={onCloseEditModal}
+                            clientFilter={clientFilter}
+                            statusFilter={statusFilter}
+                            monthFilter={monthFilter}
+                            yearFilter={yearFilter}
+                            onClientFilterChange={setClientFilter}
+                            onStatusFilterChange={setStatusFilter}
+                            onMonthFilterChange={setMonthFilter}
+                            onYearFilterChange={setYearFilter}
+                            onOpenFullEditModal={onOpenFullEditModal}
+                            isFullEditModalOpen={isFullEditModalOpen}
+                            recordToEdit={recordToEdit}
+                            onUpdateFullRecord={handleUpdateFullRecord}
+                            onCloseFullEditModal={onCloseFullEditModal}
+                            onDeleteRecord={handleDeleteRecord}
+                            newlyAddedRecordId={newlyAddedRecordId}
+                            setNewlyAddedRecordId={setNewlyAddedRecordId}
+                        />
+                    )}
+                    {currentPage === 'add' && userRole === 'admin' && (
+                        <AddRecordPage
+                            onAddRecord={handleAddRecord}
+                            onAddComponentReplacement={handleAddComponentReplacement}
+                            componentReplacements={componentReplacements}
+                            maintenanceData={maintenanceData}
+                        />
+                    )}
+                    {currentPage === 'charts' && (
+                        <ChartsPage
+                            maintenanceData={filteredData}
+                            allMaintenanceData={maintenanceData}
+                            componentReplacements={componentReplacements}
+                            clientFilter={clientFilter}
+                            statusFilter={statusFilter}
+                            monthFilter={monthFilter}
+                            yearFilter={yearFilter}
+                            onClearFilters={clearFilters}
+                        />
+                    )}
+                </main>
+            </div>
+
+            <GitHubConfigModal
+                isOpen={isConfigModalOpen}
+                onClose={() => setIsConfigModalOpen(false)}
+                onSave={handleSaveConfig}
+                initialConfig={githubConfig}
+            />
+            <PublishStatusModal 
+                status={publishStatus}
+                message={publishMessage}
+                onClose={() => setPublishStatus('idle')}
+            />
+        </>
     );
 };
 

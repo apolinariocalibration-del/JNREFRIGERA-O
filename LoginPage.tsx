@@ -35,7 +35,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error }) => {
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
                                 className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 text-white focus:ring-cyan-500 focus:border-cyan-500 transition"
-                                placeholder="Digite seu usuário"
+                                placeholder="JN ou apolinario"
                             />
                         </div>
                         <div>

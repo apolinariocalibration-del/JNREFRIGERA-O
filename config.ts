@@ -18,3 +18,17 @@ export const GITHUB_CONFIG = {
    */
   REPO: 'JNREFRIGERA-O' 
 };
+
+/**
+ * Constantes relacionadas à integração com o GitHub.
+ */
+export const GITHUB_CONSTANTS = {
+  /**
+   * A chave usada para armazenar o token do GitHub no localStorage do navegador.
+   */
+  TOKEN_KEY: 'jnRefrigeracaoGithubToken',
+  /**
+   * O caminho completo para o arquivo de dados JSON dentro do repositório.
+   */
+  FILE_PATH: 'public/data.json'
+};

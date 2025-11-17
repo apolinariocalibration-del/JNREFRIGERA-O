@@ -77,9 +77,9 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         }, {});
 
         const dailyClientData = maintenanceData.reduce((acc, record) => {
-            // FIX: Use local date parts to create a timezone-agnostic date string key.
+            // Use UTC date parts to create a timezone-agnostic date string key, ensuring consistency across all users.
             const d = new Date(record.Data);
-            const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const date = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
             
             if (!acc[date]) {
                 acc[date] = new Set<string>();
