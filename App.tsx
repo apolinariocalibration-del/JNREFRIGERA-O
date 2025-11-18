@@ -163,6 +163,7 @@ const App = () => {
     const dataFileShaRef = useRef<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+    const [fetchError, setFetchError] = useState<string | null>(null);
 
     // --- GitHub Sync State ---
     const [githubConfig, setGithubConfig] = useState<GitHubConfig | null>(() => {
@@ -202,27 +203,31 @@ const App = () => {
             setIsRefreshing(true);
             setRefreshMessage("Sincronizando com o servidor...");
         }
-
+    
+        setFetchError(null);
+    
         let dataFromSource: { maintenanceRecords: any[], componentReplacements: any[] } | null = null;
         let source = "Cache Local";
-
+    
         const config = githubConfig;
-        const canFetchFromGitHub = config && config.owner && config.repo && config.token;
-
+        const canFetchFromGitHub = 
+            config && 
+            config.owner && 
+            config.repo && 
+            config.token &&
+            config.owner !== 'seu-usuario-ou-organizacao' &&
+            config.repo !== 'seu-repositorio-do-dashboard';
+    
         if (canFetchFromGitHub) {
             try {
                 const headers: HeadersInit = { 'Authorization': `token ${config.token}` };
                 const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
                 const response = await fetch(url, { headers, cache: "no-store" });
-                
-                if (response.status === 403) {
-                     console.error("Data fetch failed: GitHub API rate limit likely exceeded or token permissions are insufficient.");
-                     if(isManualRefresh) setRefreshMessage("Erro: Limite de taxa da API do GitHub excedido.");
-                }
 
-                if (!response.ok) {
-                    throw new Error(`GitHub API request failed with status ${response.status}`);
-                }
+                if (response.status === 401) throw new Error('401 Unauthorized');
+                if (response.status === 403) throw new Error('403 Forbidden');
+                if (response.status === 404) throw new Error('404 Not Found');
+                if (!response.ok) throw new Error(`GitHub API request failed with status ${response.status}`);
 
                 const fileData = await response.json();
                 dataFileShaRef.current = fileData.sha;
@@ -231,7 +236,17 @@ const App = () => {
 
             } catch (error) {
                 console.error("Failed to fetch from GitHub, falling back to local data:", error);
-                 if (isManualRefresh) setRefreshMessage("Falha ao buscar do GitHub. Usando dados locais.");
+                if (isManualRefresh) setRefreshMessage("Falha ao buscar do GitHub. Usando dados locais.");
+                
+                let errorMessage = "Não foi possível sincronizar com o GitHub. Verifique sua conexão ou a configuração do repositório.";
+                if (error.message.includes('404')) {
+                    errorMessage = "Repositório ou arquivo não encontrado no GitHub. Verifique se o 'Dono', 'Nome do Repositório' estão corretos e se o arquivo 'public/data.json' existe. O repositório também não pode ser privado.";
+                } else if (error.message.includes('403')) {
+                    errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso ('repo'). Pode ser também que o limite de requisições da API do GitHub foi excedido.";
+                } else if (error.message.includes('401')) {
+                    errorMessage = "Token de acesso inválido ou expirado. Por favor, verifique a configuração.";
+                }
+                setFetchError(errorMessage);
             }
         }
         
@@ -246,7 +261,7 @@ const App = () => {
                  if (isManualRefresh) setRefreshMessage("Erro ao carregar dados locais.");
             }
         }
-
+    
         if (dataFromSource) {
             const maintenance = (dataFromSource.maintenanceRecords || [])
                 .map((r: any) => ({ ...r, Data: new Date(r.Data) }))
@@ -254,12 +269,14 @@ const App = () => {
             const components = (dataFromSource.componentReplacements || [])
                 .map((r: any) => ({ ...r, Data: new Date(r.Data) }))
                 .sort(sortByDateDesc);
-
+    
             setMaintenanceData(maintenance);
             setComponentReplacements(components);
             await db.saveAllMaintenanceRecords(maintenance);
             await db.saveAllComponentReplacements(components);
-            if (isManualRefresh) setRefreshMessage(`Dados sincronizados via ${source}!`);
+            if (isManualRefresh && source === 'GitHub') {
+                setRefreshMessage(`Dados sincronizados via ${source}!`);
+            }
         }
         
         if (isManualRefresh) {
@@ -268,7 +285,7 @@ const App = () => {
                 setRefreshMessage(null);
             }, 2000);
         }
-
+    
         setIsLoading(false);
     }, [githubConfig]);
 
@@ -600,6 +617,22 @@ const App = () => {
                          )}
                     </div>
                 </header>
+
+                {fetchError && (
+                    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="bg-red-900/50 border border-red-700 text-red-200 text-sm rounded-md p-4 my-4 flex items-start gap-4">
+                            <div>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div>
+                                <strong className="font-semibold">Erro de Sincronização:</strong>
+                                <p>{fetchError}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <main className="container mx-auto p-4 sm:p-6 lg:p-8">
                     {currentPage === 'dashboard' && (

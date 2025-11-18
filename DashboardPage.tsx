@@ -445,13 +445,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                         <th scope="col" className="px-6 py-3">Fim</th>
                                         <th scope="col" className="px-6 py-3">Serviço</th>
                                         <th scope="col" className="px-6 py-3">Pendência</th>
+                                        <th scope="col" className="px-6 py-3">OBS</th>
                                         <th scope="col" className="px-6 py-3">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredData.length === 0 ? (
                                         <tr className="bg-slate-800 border-b border-slate-700">
-                                            <td colSpan={9} className="text-center px-6 py-10 text-slate-400">
+                                            <td colSpan={10} className="text-center px-6 py-10 text-slate-400">
                                                 Nenhum registro encontrado para os filtros selecionados.
                                             </td>
                                         </tr>
@@ -473,6 +474,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 <td className="px-6 py-4">{record.HoraFim || '-'}</td>
                                                 <td className="px-6 py-4">{record.Serviço}</td>
                                                 <td className="px-6 py-4 max-w-xs truncate" title={record.Pendencia}>{record.Pendencia || '-'}</td>
+                                                <td className="px-6 py-4 max-w-xs truncate" title={record.OBS}>{record.OBS || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {userRole === 'admin' && (
                                                         <div className="flex items-center gap-4">

@@ -10,13 +10,13 @@ export const GITHUB_DEFAULTS = {
    * O seu nome de usuário ou o nome da sua organização no GitHub.
    * Exemplo: 'john-doe'
    */
-  OWNER: 'apolinariocalibration-del', 
+  OWNER: 'seu-usuario-ou-organizacao', 
 
   /**
    * O nome do repositório onde o dashboard está.
    * Exemplo: 'dashboard-refrigeracao'
    */
-  REPO: 'JN-REFRIGERA-O' 
+  REPO: 'seu-repositorio-do-dashboard' 
 };
 
 /**
