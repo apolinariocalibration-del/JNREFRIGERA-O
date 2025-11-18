@@ -1,40 +1,6 @@
 {
   "maintenanceRecords": [
     {
-      "Data": "2025-11-18T02:23:44.541Z",
-      "HoraInicio": "23:24",
-      "HoraFim": "",
-      "Serviço": "Corretiva",
-      "Cliente": "CCPR",
-      "Equipe": "Thalisson / Gabriel",
-      "Pendencia": "teste",
-      "OBS": "",
-      "Gás": "",
-      "Local": "",
-      "Equipamento": "",
-      "Especificação da Manutenção": "",
-      "Especificação do Equipamento": "",
-      "ID": 41,
-      "Status": "Pendente"
-    },
-    {
-      "ID": 11,
-      "Data": "2024-07-30T03:00:00.000Z",
-      "HoraInicio": "09:00",
-      "HoraFim": "10:30",
-      "Serviço": "Corretiva",
-      "Especificação da Manutenção": "Troca de disjuntor do painel.",
-      "Equipamento": "Painel Elétrico",
-      "Especificação do Equipamento": "Câmara 02",
-      "Equipe": "Weliton",
-      "Local": "Ffood",
-      "Cliente": "Ffood",
-      "OBS": "Disjuntor novo instalado.",
-      "Pendencia": "",
-      "Gás": "",
-      "Status": "Concluído"
-    },
-    {
       "ID": 8,
       "Data": "2024-07-29T03:00:00.000Z",
       "HoraInicio": "10:00",
