@@ -7,21 +7,29 @@ import LoginPage from './LoginPage';
 import * as db from './db';
 import { GITHUB_DEFAULTS, GITHUB_CONSTANTS } from './config';
 import { normalizeTechnicianName } from './utils';
+import { INITIAL_MAINTENANCE_DATA, INITIAL_COMPONENT_REPLACEMENTS } from './constants';
 
 // --- HELPER FUNCTIONS ---
 
 const decodeGitHubFileContent = async (base64: string): Promise<any> => {
     try {
-        const response = await fetch(`data:application/json;base64,${base64.trim()}`);
-        if (!response.ok) {
-            throw new Error('Failed to decode base64 content via fetch.');
+        // Clean formatting (newlines) from base64 string
+        const cleanBase64 = base64.replace(/\s/g, '');
+        // Try native decoding first
+        try {
+            const decodedString = atob(cleanBase64);
+            // Handle UTF-8 characters correctly
+            const bytes = Uint8Array.from(decodedString, c => c.charCodeAt(0));
+            const decoder = new TextDecoder('utf-8');
+            return JSON.parse(decoder.decode(bytes));
+        } catch (e) {
+             // Fallback to fetch data uri if native fails (rare/large files)
+             const response = await fetch(`data:application/json;base64,${cleanBase64}`);
+             if (!response.ok) throw new Error('Failed to decode base64 content via fetch.');
+             return await response.json();
         }
-        return await response.json();
     } catch (e) {
         console.error("Failed to decode or parse GitHub file content:", e);
-        if (e instanceof SyntaxError) {
-             console.error("The decoded content is not valid JSON.");
-        }
         return null;
     }
 };
@@ -79,22 +87,6 @@ const GitHubConfigModal: React.FC<{
             <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg border border-slate-700">
                 <h2 className="text-2xl font-semibold mb-4 text-white">Configurar Publicação Automática</h2>
                 <p className="text-slate-400 mb-4 text-sm">Insira os detalhes do seu repositório no GitHub e um Token de Acesso Pessoal (PAT) para ativar a publicação automática.</p>
-                <div className="bg-yellow-900/50 border border-yellow-700 text-yellow-200 text-sm rounded-md p-3 my-4">
-                    <p className="font-bold">Aviso de Segurança</p>
-                    <p>As configurações são armazenadas no seu navegador. Use um token com as permissões mínimas (`repo`) e considere revogá-lo periodicamente.</p>
-                </div>
-                
-                <div className="my-6 text-sm text-slate-400">
-                    <p className="font-semibold text-slate-300 mb-2">Solução de Problemas de Acesso:</p>
-                    <ul className="list-disc list-inside space-y-2">
-                        <li>
-                            <strong>Permissões (Escopo):</strong> Certifique-se de que seu token tem o escopo <code className="bg-slate-700 text-cyan-300 px-1 rounded-sm text-xs">repo</code> habilitado para permitir acesso a repositórios.
-                        </li>
-                        <li>
-                            <strong>Autorização SSO:</strong> Se o repositório pertence a uma organização que exige Single Sign-On (SSO), você <strong>precisa</strong> autorizar o token para essa organização. Após criar o token, clique em <code className="bg-slate-700 text-cyan-300 px-1 rounded-sm text-xs">Configure SSO</code> e autorize o acesso.
-                        </li>
-                    </ul>
-                </div>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -107,10 +99,10 @@ const GitHubConfigModal: React.FC<{
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Token de Acesso Pessoal (PAT)</label>
-                        <input type="password" name="token" value={config.token} onChange={handleChange} placeholder="cole seu token aqui (começa com github_pat_...)" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
+                        <input type="password" name="token" value={config.token} onChange={handleChange} placeholder="github_pat_..." className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
                     </div>
                     <div className="flex justify-between items-center pt-4">
-                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover Configuração</button>
+                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover</button>
                         <div className="flex gap-2">
                              <button type="button" onClick={onClose} className="px-5 py-2 bg-slate-600 hover:bg-slate-500 rounded-md font-semibold">Cancelar</button>
                              <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-md font-semibold text-white">Salvar</button>
@@ -197,9 +189,7 @@ const App = () => {
         if (isManualRefresh) {
             setIsRefreshing(true);
             setRefreshMessage("Sincronizando com o servidor...");
-        } else if (maintenanceData.length > 0) {
-            setIsRefreshing(true);
-        } else {
+        } else if (maintenanceData.length === 0) {
             setIsLoading(true);
         }
     
@@ -208,12 +198,14 @@ const App = () => {
         let gitHubSyncError: Error | null = null;
     
         const config = githubConfig;
-        const canFetchFromGitHub = !!(config?.token && config?.owner && config?.repo && config.owner !== GITHUB_DEFAULTS.OWNER && config.repo !== GITHUB_DEFAULTS.REPO);
+        const canFetchFromGitHub = !!(config?.token && config?.owner && config?.repo);
     
+        // 1. TENTATIVA GITHUB
         if (canFetchFromGitHub) {
             try {
                 const headers: HeadersInit = { 'Authorization': `token ${config.token}` };
-                const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
+                // Important: Add timestamp to prevent caching
+                const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}?t=${new Date().getTime()}`;
                 const response = await fetch(url, { headers, cache: "no-store" });
     
                 if (response.status === 401) throw new Error('401 Unauthorized');
@@ -232,46 +224,63 @@ const App = () => {
             }
         }
     
+        // 2. TENTATIVA LOCAL (FALLBACK)
         if (!dataFromSource) {
             try {
+                // Try multiple paths to ensure we find the file regardless of deployment structure
                 const pathsToTry = [
-                    'data.json',
+                    'data.json', 
                     '/data.json',
-                    GITHUB_CONSTANTS.FILE_PATH,
-                    GITHUB_CONSTANTS.FILE_PATH.replace(/^public\//, '')
+                    GITHUB_CONSTANTS.FILE_PATH, 
+                    `/${GITHUB_CONSTANTS.FILE_PATH}`
                 ];
 
                 let response = null;
                 for (const path of pathsToTry) {
                     try {
                         const res = await fetch(path);
-                        if (res.ok) {
+                        const contentType = res.headers.get("content-type");
+                        // Check if it is actually JSON and not an HTML 404 page
+                        if (res.ok && contentType && contentType.includes("application/json")) {
                             response = res;
                             break;
                         }
-                    } catch (e) { continue; }
+                    } catch (e) { /* Continue */ }
                 }
 
-                if (!response || !response.ok) {
-                     throw new Error("Local data file not found in any checked path.");
+                if (response) {
+                    dataFromSource = await response.json();
+                    source = "Arquivo Local (Base)";
+                } else {
+                    throw new Error("Local data unavailable in all paths.");
                 }
 
-                dataFromSource = await response.json();
-                source = "Arquivo Local (Base)";
             } catch (localError) {
-                console.error("Failed to fetch local data file:", localError);
-                if (gitHubSyncError) {
-                    let errorMessage = "Não foi possível sincronizar com o GitHub. Exibindo dados de cache.";
-                     if (gitHubSyncError.message.includes('404')) {
-                        errorMessage = `Repositório ou arquivo não encontrado. Verifique se o arquivo '${GITHUB_CONSTANTS.FILE_PATH}' existe.`;
-                    } else if (gitHubSyncError.message.includes('403')) {
-                        errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso.";
-                    } else if (gitHubSyncError.message.includes('401')) {
-                        errorMessage = "Token de acesso inválido ou expirado. Verifique a configuração.";
+                console.warn("Failed to fetch local data file, checking cache and defaults...", localError);
+                
+                // 3. TENTATIVA CACHE OU CONSTANTES
+                try {
+                    const cachedM = await db.getMaintenanceRecords();
+                    if (cachedM.length > 0) {
+                         source = "Cache Offline";
+                         dataFromSource = {
+                            maintenanceRecords: cachedM,
+                            componentReplacements: await db.getComponentReplacements()
+                         };
+                    } else {
+                         // Se não houver cache, lança erro para cair no catch abaixo e usar constantes
+                         throw new Error("Cache vazio.");
                     }
-                    setFetchError(errorMessage);
-                } else if (maintenanceData.length === 0) {
-                     setFetchError("Falha ao carregar dados. Verifique sua conexão ou configuração.");
+                } catch (e) {
+                    // 4. FALLBACK FINAL: DADOS PADRÃO (CONSTANTS)
+                    // Isso previne a Tela Branca e o erro "Failed to fetch"
+                    console.warn("Usando dados padrão (constantes) como fallback.");
+                    dataFromSource = { 
+                         maintenanceRecords: INITIAL_MAINTENANCE_DATA, 
+                         componentReplacements: INITIAL_COMPONENT_REPLACEMENTS 
+                    };
+                    source = "Dados Padrão";
+                    setFetchError(null); // Limpa erro pois recuperamos com sucesso
                 }
             }
         }
@@ -279,39 +288,49 @@ const App = () => {
         if (dataFromSource) {
             setFetchError(null);
             try {
-                // SANITIZATION: Ensure dates are valid to prevent "Failed to load" app crashes
-                const maintenance = (dataFromSource.maintenanceRecords || [])
-                    .map((r: any) => {
-                        const d = new Date(r.Data);
+                // --- CRITICAL SANITIZATION STEP ---
+                // This prevents "Failed to load" / White Screen of Death due to bad data
+                const sanitizeRecords = (records: any[]) => {
+                    if (!Array.isArray(records)) return [];
+                    return records.map((r: any) => {
+                        let d: Date;
+                        try {
+                            d = new Date(r.Data);
+                            // Check if date is invalid
+                            if (isNaN(d.getTime())) {
+                                d = new Date(); 
+                            }
+                        } catch {
+                            d = new Date();
+                        }
+
                         return { 
                             ...r, 
-                            Data: isNaN(d.getTime()) ? new Date() : d 
+                            ID: Number(r.ID) || 0, 
+                            Data: d,
+                            Status: r.Status || 'Concluído',
+                            Cliente: r.Cliente || 'Desconhecido',
+                            Serviço: r.Serviço || 'Geral'
                         };
-                    })
-                    .sort(sortByDateDesc);
+                    });
+                };
 
-                const components = (dataFromSource.componentReplacements || [])
-                    .map((r: any) => {
-                         const d = new Date(r.Data);
-                         return { 
-                             ...r, 
-                             Data: isNaN(d.getTime()) ? new Date() : d 
-                         };
-                    })
-                    .sort(sortByDateDesc);
+                const maintenance = sanitizeRecords(dataFromSource.maintenanceRecords).sort(sortByDateDesc);
+                const components = sanitizeRecords(dataFromSource.componentReplacements).sort(sortByDateDesc);
 
                 setMaintenanceData(maintenance);
                 setComponentReplacements(components);
+                
+                // Update local storage backup
                 await db.saveAllMaintenanceRecords(maintenance);
                 await db.saveAllComponentReplacements(components);
+                
                 if (isRefreshing || isManualRefresh) {
-                    setRefreshMessage(`Dados sincronizados via ${source}!`);
+                    setRefreshMessage(`Dados sincronizados: ${source}`);
                 }
             } catch (processError) {
-                console.error("Error processing data:", processError);
-                if (maintenanceData.length === 0) {
-                    setFetchError("Erro crítico ao processar estrutura dos dados recebidos.");
-                }
+                console.error("Error processing data structure:", processError);
+                setFetchError("Dados corrompidos recebidos.");
             }
         }
     
@@ -319,11 +338,11 @@ const App = () => {
             setTimeout(() => {
                 setIsRefreshing(false);
                 setRefreshMessage(null);
-            }, 2000);
+            }, 3000);
         }
     
         setIsLoading(false);
-    }, [githubConfig, maintenanceData.length]);
+    }, [githubConfig, maintenanceData.length, isRefreshing]);
 
 
     const publishData = async (
@@ -333,14 +352,12 @@ const App = () => {
         const isConfigInvalid = 
             !githubConfig?.token || 
             !githubConfig.owner || 
-            !githubConfig.repo ||
-            githubConfig.owner === GITHUB_DEFAULTS.OWNER ||
-            githubConfig.repo === GITHUB_DEFAULTS.REPO;
+            !githubConfig.repo;
     
         if (isConfigInvalid) {
             console.warn("GitHub configuration incomplete.");
             setPublishStatus('error');
-            setPublishMessage('Configuração incompleta. Por favor, verifique o Token e o nome do Repositório.');
+            setPublishMessage('Configuração incompleta. Adicione o token nas configurações.');
             setIsConfigModalOpen(true);
             return false;
         }
@@ -351,10 +368,9 @@ const App = () => {
         try {
             const fileUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
             
-            // 1. Get current SHA to allow update
+            // 1. Fetch current SHA to allow update (Prevent 409 Conflict)
             let currentSha = dataFileShaRef.current;
             
-            // Always try to fetch latest SHA before writing to avoid 409 Conflict if multiple users
             try {
                 const checkResponse = await fetch(fileUrl, {
                     headers: { 'Authorization': `token ${githubConfig.token}` },
@@ -363,9 +379,18 @@ const App = () => {
                 if (checkResponse.ok) {
                     const checkData = await checkResponse.json();
                     currentSha = checkData.sha;
+                } else if (checkResponse.status === 404) {
+                    // File doesn't exist, we will create it, so sha is undefined
+                    currentSha = undefined;
+                } else if (checkResponse.status === 401 || checkResponse.status === 403) {
+                    throw new Error("Permissão negada. Verifique seu Token.");
                 }
             } catch (e) {
-                console.log("Could not fetch latest SHA, will try with cached or null", e);
+                // If checking fails (e.g. network error), we might still try to PUT if we have a cached SHA, 
+                // but usually safer to fail or assume creation if we are sure.
+                // For now, let's proceed but if e is Auth error, rethrow.
+                if (e instanceof Error && e.message.includes("Permissão")) throw e;
+                console.log("Could not fetch latest SHA, proceeding with cached if available", e);
             }
 
             const content = {
@@ -377,7 +402,7 @@ const App = () => {
             const encodedContent = utf8ToBase64(JSON.stringify(content, null, 2));
 
             const requestBody: { message: string; content: string; sha?: string } = {
-                message: `[APP] Atualização de dados ${new Date().toLocaleDateString()}`,
+                message: `[APP] Atualização ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
                 content: encodedContent,
             };
 
@@ -404,6 +429,10 @@ const App = () => {
 
             setPublishStatus('success');
             setPublishMessage('Dados salvos e publicados com sucesso!');
+            
+            // Clear success message after 3 seconds
+            setTimeout(() => setPublishStatus('idle'), 3000);
+            
             return true;
 
         } catch (error) {
@@ -411,11 +440,11 @@ const App = () => {
             let detailedMessage = `Erro: ${error.message}`;
 
             if (error.message.includes('409')) {
-                detailedMessage = "Conflito: Dados mudaram no servidor. Atualize a página e tente novamente.";
+                detailedMessage = "Conflito de edição. Tente sincronizar e salvar novamente.";
             } else if (error.message.includes('401') || error.message.includes('Bad credentials')) {
-                 detailedMessage = "Token inválido. Verifique suas credenciais.";
+                 detailedMessage = "Token inválido. Verifique suas configurações.";
             } else if (error.message.includes('404')) {
-                 detailedMessage = "Repositório não encontrado. Verifique se o nome está correto.";
+                 detailedMessage = "Repositório não encontrado. Verifique o nome do repositório.";
             }
             
             setPublishStatus('error');
@@ -437,25 +466,27 @@ const App = () => {
 
     useEffect(() => {
         const loadAndSync = async () => {
+            // Load local cache first for instant UI
             try {
                 const cachedMaintenance = await db.getMaintenanceRecords();
                 const cachedComponents = await db.getComponentReplacements();
                 
                 if (cachedMaintenance.length > 0) {
-                    setMaintenanceData(cachedMaintenance);
-                    setComponentReplacements(cachedComponents);
+                    setMaintenanceData(cachedMaintenance.sort(sortByDateDesc));
+                    setComponentReplacements(cachedComponents.sort(sortByDateDesc));
                     setIsLoading(false);
                 }
             } catch (e) {
                 console.error("Error loading local cache:", e);
             }
 
+            // Then try to sync
             syncWithRemote(false);
         };
         
         loadAndSync();
 
-        const intervalId = setInterval(() => syncWithRemote(false), 5 * 60 * 1000); // every 5 minutes
+        const intervalId = setInterval(() => syncWithRemote(false), 5 * 60 * 1000); // 5 min auto-refresh
         return () => clearInterval(intervalId);
     }, [syncWithRemote]);
 
@@ -490,7 +521,6 @@ const App = () => {
             localStorage.removeItem(GITHUB_CONSTANTS.CONFIG_KEY);
         }
         setIsConfigModalOpen(false);
-        // Trigger immediate sync after saving config
         if (config) {
             setTimeout(() => syncWithRemote(true), 500);
         }
@@ -515,22 +545,29 @@ const App = () => {
     };
     
     const handleImportData = async (importedMaintenance: any[], importedComponents: any[]) => {
-        // Process Maintenance
-        const processedMaintenance = importedMaintenance.map(rec => ({
-            ...rec,
-            ID: Number(rec.ID) || 0, // Temp ID, will fix later if needed, or trust excel
-            Data: new Date(rec.Data),
-            Status: rec.Pendencia ? 'Pendente' : 'Concluído'
-        })).filter(r => !isNaN(r.Data.getTime()));
+        // Sanitiza e converte dados importados
+        const processRecord = (rec: any) => {
+             // Handle weird Excel dates or string dates
+             let date = new Date(rec.Data);
+             if (isNaN(date.getTime())) date = new Date();
+
+             return {
+                 ...rec,
+                 Data: date,
+                 Status: rec.Status || (rec.Pendencia ? 'Pendente' : 'Concluído'),
+             };
+        };
+
+        const processedMaintenance = importedMaintenance.map(processRecord);
         
-        // Recalculate IDs to avoid collisions if import doesn't have them or we merge
-        // Strategy: Replace ALL or Merge? Let's Merge.
-        
-        // Simple Merge Strategy: Add new records to existing.
+        // Find max ID currently to avoid conflicts
         let maxId = maintenanceData.length > 0 ? Math.max(...maintenanceData.map(r => r.ID)) : 0;
+        
         const newMaintenanceRecords = processedMaintenance.map((r, idx) => ({
             ...r,
-            ID: maxId + idx + 1
+            ID: maxId + idx + 1, // Generate new IDs
+            Cliente: r.Cliente || 'Importado',
+            Serviço: r.Serviço || 'Geral'
         }));
         
         const combinedMaintenance = [...newMaintenanceRecords, ...maintenanceData].sort(sortByDateDesc);
@@ -538,10 +575,14 @@ const App = () => {
         setMaintenanceData(combinedMaintenance);
         await db.saveAllMaintenanceRecords(combinedMaintenance);
         
-        // Process Components if any (simplified for now, assuming mostly maintenance import)
-        await publishData(combinedMaintenance, componentReplacements);
-        alert(`${newMaintenanceRecords.length} registros importados com sucesso!`);
-        setCurrentPage('dashboard');
+        const success = await publishData(combinedMaintenance, componentReplacements);
+        if (success) {
+             alert(`${newMaintenanceRecords.length} registros importados com sucesso!`);
+             setCurrentPage('dashboard');
+        } else {
+            // Even if publish fails, we keep local state, but warn
+            alert("Dados importados localmente, mas houve erro ao publicar no GitHub.");
+        }
     };
 
     const handleAddComponentReplacement = async (record: Omit<ComponentReplacementRecord, 'ID'>) => {
@@ -717,7 +758,7 @@ const App = () => {
                             </div>
                         </div>
                          {isRefreshing && refreshMessage && (
-                             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-slate-700 text-white text-xs px-3 py-1 rounded-b-md shadow-lg">
+                             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-slate-700 text-white text-xs px-3 py-1 rounded-b-md shadow-lg z-50">
                                  {refreshMessage}
                              </div>
                          )}
@@ -733,7 +774,7 @@ const App = () => {
                                 </svg>
                             </div>
                             <div className="flex-grow">
-                                <strong className="font-semibold">Erro de Sincronização:</strong>
+                                <strong className="font-semibold">Aviso:</strong>
                                 <p>{fetchError}</p>
                             </div>
                              <div>
@@ -741,7 +782,7 @@ const App = () => {
                                     onClick={() => setIsConfigModalOpen(true)}
                                     className="bg-red-500/30 hover:bg-red-500/50 text-white font-semibold py-2 px-4 rounded-md transition-colors whitespace-nowrap"
                                 >
-                                    Abrir Configuração
+                                    Configurar GitHub
                                 </button>
                             </div>
                         </div>

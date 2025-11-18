@@ -254,7 +254,11 @@ const ImportSection: React.FC<ImportSectionProps> = ({ onImport }) => {
                 </svg>
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">Importar Planilha</h2>
-            <p className="text-slate-400 text-sm mb-6 max-w-xs">Carregue um arquivo Excel (.xlsx) ou CSV para adicionar múltiplos registros de uma vez.</p>
+            <p className="text-slate-400 text-sm mb-6 max-w-xs">
+                Carregue um arquivo Excel (.xlsx) ou CSV.
+                <br/>
+                <span className="text-xs text-slate-500">(Ex: Google Sheets {'>'} Arquivo {'>'} Fazer download {'>'} Microsoft Excel)</span>
+            </p>
             
             <label className="cursor-pointer bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-md transition-colors">
                 <span>Selecionar Arquivo</span>

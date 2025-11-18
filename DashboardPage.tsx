@@ -239,6 +239,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     onYearFilterChange,
     onOpenFullEditModal,
     isFullEditModalOpen,
+    isFullEditModalOpen: _isFullEditModalOpen, // alias to avoid unused var warning if needed later
     recordToEdit,
     onUpdateFullRecord,
     onCloseFullEditModal,
@@ -469,6 +470,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
                                                 <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
+                                                    {/* Critical fix: Check if date is valid before calling toLocaleDateString */}
                                                     {isNaN(new Date(record.Data).getTime()) 
                                                         ? <span className="text-red-400">Data Inválida</span> 
                                                         : new Date(record.Data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
@@ -519,7 +521,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 />
             )}
 
-            {isFullEditModalOpen && recordToEdit && (
+            {_isFullEditModalOpen && recordToEdit && (
                 <FullEditRecordModal 
                     record={recordToEdit} 
                     onUpdate={onUpdateFullRecord} 
