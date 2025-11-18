@@ -7,7 +7,7 @@ import { formatDateForInput, parseDateFromInput, normalizeTechnicianName } from 
 const getUniqueTechnicians = (records: MaintenanceRecord[]): string[] => {
     const techSet = new Set<string>();
     records.forEach(record => {
-        (record.Equipe || '').split(/[\\\/]/).forEach(techName => {
+        (record.Equipe || '').split(/[\\\/,]/).forEach(techName => {
             if (techName.trim()) techSet.add(normalizeTechnicianName(techName));
         });
     });
@@ -54,8 +54,9 @@ const AddRecordSection: React.FC<AddRecordSectionProps> = ({ onAdd, allTechnicia
 
         if (recordToSubmit.Equipe) {
             const normalizedTeam = recordToSubmit.Equipe
-                .split(/[\\\/]/)
+                .split(/[\\\/,]/)
                 .map(name => normalizeTechnicianName(name.trim()))
+                .filter(name => name) // Remove empty strings that might result from multiple separators
                 .join(' / ');
             recordToSubmit.Equipe = normalizedTeam;
         }

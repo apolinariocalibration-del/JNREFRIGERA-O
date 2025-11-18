@@ -1,11 +1,11 @@
 /**
- * Configuração do Repositório GitHub
+ * Configuração Padrão do Repositório GitHub
  * 
- * IMPORTANTE: Para que a atualização em tempo real funcione,
- * você PRECISA preencher os valores abaixo com as informações
- * do seu repositório no GitHub onde este projeto está hospedado.
+ * Estes são os valores padrão que a aplicação usará se nenhuma
+ * configuração for salva pelo usuário na interface. O usuário
+ * pode sobrescrever estes valores no modal de configuração.
  */
-export const GITHUB_CONFIG = {
+export const GITHUB_DEFAULTS = {
   /**
    * O seu nome de usuário ou o nome da sua organização no GitHub.
    * Exemplo: 'john-doe'
@@ -16,7 +16,7 @@ export const GITHUB_CONFIG = {
    * O nome do repositório onde o dashboard está.
    * Exemplo: 'dashboard-refrigeracao'
    */
-  REPO: 'JNREFRIGERA-O' 
+  REPO: 'JN-REFRIGERA-O' 
 };
 
 /**
@@ -24,9 +24,10 @@ export const GITHUB_CONFIG = {
  */
 export const GITHUB_CONSTANTS = {
   /**
-   * A chave usada para armazenar o token do GitHub no localStorage do navegador.
+   * A chave usada para armazenar o objeto de configuração do GitHub
+   * no localStorage do navegador (inclui token, owner e repo).
    */
-  TOKEN_KEY: 'jnRefrigeracaoGithubToken',
+  CONFIG_KEY: 'jnRefrigeracaoGithubConfig',
   /**
    * O caminho completo para o arquivo de dados JSON dentro do repositório.
    */

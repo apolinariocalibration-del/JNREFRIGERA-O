@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MaintenanceRecord, ComponentReplacementRecord, GitHubTokenConfig } from './types';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { MaintenanceRecord, ComponentReplacementRecord, GitHubConfig } from './types';
 import DashboardPage from './DashboardPage';
 import AddRecordPage from './AddRecordPage';
 import ChartsPage from './ChartsPage';
 import LoginPage from './LoginPage';
 import * as db from './db';
-import { GITHUB_CONFIG, GITHUB_CONSTANTS } from './config';
+import { GITHUB_DEFAULTS, GITHUB_CONSTANTS } from './config';
 import { normalizeTechnicianName } from './utils';
 
 // --- HELPER FUNCTIONS ---
@@ -47,10 +47,14 @@ const sortByDateDesc = <T extends { Data: Date }>(a: T, b: T) => new Date(b.Data
 const GitHubConfigModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onSave: (config: GitHubTokenConfig | null) => void;
-    initialConfig: GitHubTokenConfig | null;
+    onSave: (config: GitHubConfig | null) => void;
+    initialConfig: GitHubConfig | null;
 }> = ({ isOpen, onClose, onSave, initialConfig }) => {
-    const [config, setConfig] = useState<GitHubTokenConfig>(initialConfig || { token: '' });
+    const [config, setConfig] = useState<GitHubConfig>(initialConfig || { token: '', owner: GITHUB_DEFAULTS.OWNER, repo: GITHUB_DEFAULTS.REPO });
+
+    useEffect(() => {
+        setConfig(initialConfig || { token: '', owner: GITHUB_DEFAULTS.OWNER, repo: GITHUB_DEFAULTS.REPO });
+    }, [initialConfig]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -63,7 +67,7 @@ const GitHubConfigModal: React.FC<{
     };
 
     const handleRemove = () => {
-        localStorage.removeItem(GITHUB_CONSTANTS.TOKEN_KEY);
+        localStorage.removeItem(GITHUB_CONSTANTS.CONFIG_KEY);
         onSave(null);
         onClose();
     };
@@ -74,10 +78,10 @@ const GitHubConfigModal: React.FC<{
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-lg border border-slate-700">
                 <h2 className="text-2xl font-semibold mb-4 text-white">Configurar Publicação Automática</h2>
-                <p className="text-slate-400 mb-4 text-sm">Insira seu Token de Acesso Pessoal (PAT) do GitHub para ativar a publicação automática. Seu registro foi salvo localmente e será publicado na próxima atualização.</p>
+                <p className="text-slate-400 mb-4 text-sm">Insira os detalhes do seu repositório no GitHub e um Token de Acesso Pessoal (PAT) para ativar a publicação automática.</p>
                 <div className="bg-yellow-900/50 border border-yellow-700 text-yellow-200 text-sm rounded-md p-3 my-4">
                     <p className="font-bold">Aviso de Segurança</p>
-                    <p>O Token é armazenado no seu navegador. Use um token com as permissões mínimas (`repo`) e considere revogá-lo periodicamente.</p>
+                    <p>As configurações são armazenadas no seu navegador. Use um token com as permissões mínimas (`repo`) e considere revogá-lo periodicamente.</p>
                 </div>
                 
                 <div className="my-6 text-sm text-slate-400">
@@ -92,20 +96,25 @@ const GitHubConfigModal: React.FC<{
                         <li>
                             <strong>Validade:</strong> Verifique se o token não está expirado.
                         </li>
-                        <li>
-                            <strong>Token correto:</strong> Confirme que você copiou e colou o token completo e sem espaços extras.
-                        </li>
                     </ul>
                 </div>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">Dono (Usuário ou Organização)</label>
+                        <input type="text" name="owner" value={config.owner} onChange={handleChange} placeholder="ex: seu-usuario-github" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">Nome do Repositório</label>
+                        <input type="text" name="repo" value={config.repo} onChange={handleChange} placeholder="ex: meu-dashboard" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Token de Acesso Pessoal (PAT)</label>
                         <input type="password" name="token" value={config.token} onChange={handleChange} placeholder="cole seu token aqui" className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white" required />
                         <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">Como criar um token? (Requer escopo `repo`)</a>
                     </div>
                     <div className="flex justify-between items-center pt-4">
-                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover Token</button>
+                         <button type="button" onClick={handleRemove} className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md">Remover Configuração</button>
                         <div className="flex gap-2">
                              <button type="button" onClick={onClose} className="px-5 py-2 bg-slate-600 hover:bg-slate-500 rounded-md font-semibold">Cancelar</button>
                              <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-md font-semibold text-white">Salvar</button>
@@ -156,9 +165,9 @@ const App = () => {
     const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
     // --- GitHub Sync State ---
-    const [githubConfig, setGithubConfig] = useState<GitHubTokenConfig | null>(() => {
+    const [githubConfig, setGithubConfig] = useState<GitHubConfig | null>(() => {
         try {
-            const stored = localStorage.getItem(GITHUB_CONSTANTS.TOKEN_KEY);
+            const stored = localStorage.getItem(GITHUB_CONSTANTS.CONFIG_KEY);
             return stored ? JSON.parse(stored) : null;
         } catch {
             return null;
@@ -187,7 +196,7 @@ const App = () => {
     const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
 
 
-    const fetchData = async (isManualRefresh = false) => {
+    const fetchData = useCallback(async (isManualRefresh = false) => {
         if (!isManualRefresh) setIsLoading(true);
         else {
             setIsRefreshing(true);
@@ -197,13 +206,13 @@ const App = () => {
         let dataFromSource: { maintenanceRecords: any[], componentReplacements: any[] } | null = null;
         let source = "Cache Local";
 
-        const tokenConfig = githubConfig;
-        const canFetchFromGitHub = GITHUB_CONFIG.OWNER && GITHUB_CONFIG.REPO && tokenConfig && tokenConfig.token;
+        const config = githubConfig;
+        const canFetchFromGitHub = config && config.owner && config.repo && config.token;
 
         if (canFetchFromGitHub) {
             try {
-                const headers: HeadersInit = { 'Authorization': `token ${tokenConfig.token}` };
-                const url = `https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
+                const headers: HeadersInit = { 'Authorization': `token ${config.token}` };
+                const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
                 const response = await fetch(url, { headers, cache: "no-store" });
                 
                 if (response.status === 403) {
@@ -261,14 +270,14 @@ const App = () => {
         }
 
         setIsLoading(false);
-    };
+    }, [githubConfig]);
 
     const publishData = async (
         updatedMaintenance: MaintenanceRecord[],
         updatedComponents: ComponentReplacementRecord[]
     ): Promise<boolean> => {
-        if (!githubConfig?.token) {
-            console.warn("GitHub token not configured. Opening config modal.");
+        if (!githubConfig?.token || !githubConfig.owner || !githubConfig.repo) {
+            console.warn("GitHub configuration is incomplete. Opening config modal.");
             setIsConfigModalOpen(true);
             return false;
         }
@@ -277,39 +286,56 @@ const App = () => {
         setPublishMessage('Publicando alterações...');
 
         try {
-            // Get latest SHA again before pushing
-            const shaUrl = `https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
-            const shaResponse = await fetch(shaUrl, { headers: { 'Authorization': `token ${githubConfig.token}` } });
-            if (!shaResponse.ok) throw new Error("Failed to get latest file SHA before publishing.");
-            const fileData = await shaResponse.json();
-            const latestSha = fileData.sha;
+            let latestSha: string | undefined = undefined;
+
+            const fileUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
+            const getResponse = await fetch(fileUrl, {
+                headers: { 'Authorization': `token ${githubConfig.token}` },
+                cache: 'no-store'
+            });
+
+            if (getResponse.ok) {
+                const fileData = await getResponse.json();
+                latestSha = fileData.sha;
+            } else if (getResponse.status === 404) {
+                console.log("data.json not found on GitHub. A new file will be created.");
+            } else {
+                const errorBody = await getResponse.json().catch(() => ({ message: `GitHub API returned status ${getResponse.status}` }));
+                throw new Error(`Failed to check for existing data file. Reason: ${errorBody.message || 'Unknown error'}`);
+            }
 
             const content = {
                 maintenanceRecords: updatedMaintenance,
                 componentReplacements: updatedComponents
             };
+            const encodedContent = utf8ToBase64(JSON.stringify(content, null, 2));
 
-            const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.OWNER}/${GITHUB_CONFIG.REPO}/contents/${GITHUB_CONSTANTS.FILE_PATH}`, {
+            const requestBody: { message: string; content: string; sha?: string } = {
+                message: `[BOT] Atualização de dados em ${new Date().toISOString()}`,
+                content: encodedContent,
+            };
+
+            if (latestSha) {
+                requestBody.sha = latestSha;
+            }
+
+            const putResponse = await fetch(fileUrl, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `token ${githubConfig.token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    message: `[BOT] Atualização de dados em ${new Date().toISOString()}`,
-                    content: utf8ToBase64(JSON.stringify(content, null, 2)),
-                    sha: latestSha
-                })
+                body: JSON.stringify(requestBody)
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`GitHub API Error: ${errorData.message || 'Unknown error'}`);
+            if (!putResponse.ok) {
+                const errorData = await putResponse.json();
+                throw new Error(`GitHub API Error: ${errorData.message || 'Unknown error during file write'}`);
             }
 
-            const result = await response.json();
+            const result = await putResponse.json();
             dataFileShaRef.current = result.content.sha;
-            
+
             setPublishStatus('success');
             setPublishMessage('Dados publicados com sucesso!');
             return true;
@@ -317,10 +343,12 @@ const App = () => {
         } catch (error) {
             console.error('Failed to publish data:', error);
             let detailedMessage = `Erro desconhecido: ${error.message}`;
-            if (error.message.includes('Resource not accessible')) {
-                detailedMessage = "Acesso negado. Verifique se o seu token do GitHub tem as permissões corretas (`repo`) e se foi autorizado para a organização (SSO), caso aplicável. Abra a configuração para ver mais detalhes.";
-            } else if (error.message.includes('401')) {
+             if (error.message.includes('Resource not accessible') || error.message.includes('Not Found')) {
+                detailedMessage = "Acesso negado ou repositório não encontrado. Verifique se o Dono (OWNER) e o Repositório (REPO) estão corretos. Além disso, certifique-se de que seu token tem permissão `repo` e, se necessário, foi autorizado para a organização (SSO).";
+            } else if (error.message.includes('401') || error.message.includes('Bad credentials')) {
                  detailedMessage = "Token inválido ou expirado. Por favor, verifique seu token de acesso pessoal na tela de configuração.";
+            } else if (error.message.includes('API rate limit exceeded')) {
+                 detailedMessage = "Limite de requisições da API do GitHub excedido. Tente novamente mais tarde.";
             }
             
             setPublishStatus('error');
@@ -329,27 +357,32 @@ const App = () => {
         }
     };
     
+     useEffect(() => {
+        // Effect for handling config changes from other tabs/windows via localStorage
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === GITHUB_CONSTANTS.CONFIG_KEY) {
+                const newConfig = event.newValue ? JSON.parse(event.newValue) : null;
+                setGithubConfig(newConfig);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
     useEffect(() => {
-        fetchData();
-        const interval = setInterval(() => {
+        // Effect for fetching data and setting up the refresh interval.
+        // It runs on the initial load and whenever the githubConfig changes.
+        fetchData(); 
+
+        const intervalId = setInterval(() => {
             console.log("Refreshing data automatically...");
             fetchData(true);
         }, 5 * 60 * 1000); // every 5 minutes
 
-        const handleStorageChange = (event: StorageEvent) => {
-             if (event.key === GITHUB_CONSTANTS.TOKEN_KEY) {
-                const newConfig = event.newValue ? JSON.parse(event.newValue) : null;
-                setGithubConfig(newConfig);
-             }
-        };
+        // Cleanup interval when the component unmounts or when the config changes.
+        return () => clearInterval(intervalId);
+    }, [fetchData]);
 
-        window.addEventListener('storage', handleStorageChange);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('storage', handleStorageChange);
-        };
-    }, []);
 
     // --- HANDLER FUNCTIONS ---
     
@@ -357,11 +390,9 @@ const App = () => {
         const normalizedUser = user.trim().toLowerCase();
         const normalizedPass = pass.trim();
 
-        // Nível 2 (Admin) - Acesso total
         if (normalizedUser === 'apolinario' && normalizedPass === 'Enzo2523') {
             setUserRole('admin');
             setLoginError(null);
-        // Nível 1 (Visualizador) - Acesso limitado
         } else if (normalizedUser === 'jn' && normalizedPass === '123') {
             setUserRole('viewer');
             setLoginError(null);
@@ -375,12 +406,12 @@ const App = () => {
         setLoginError(null);
     };
 
-    const handleSaveConfig = (config: GitHubTokenConfig | null) => {
+    const handleSaveConfig = (config: GitHubConfig | null) => {
         setGithubConfig(config);
         if (config) {
-            localStorage.setItem(GITHUB_CONSTANTS.TOKEN_KEY, JSON.stringify(config));
+            localStorage.setItem(GITHUB_CONSTANTS.CONFIG_KEY, JSON.stringify(config));
         } else {
-            localStorage.removeItem(GITHUB_CONSTANTS.TOKEN_KEY);
+            localStorage.removeItem(GITHUB_CONSTANTS.CONFIG_KEY);
         }
         setIsConfigModalOpen(false);
     };
@@ -421,8 +452,6 @@ const App = () => {
                     ...record,
                     Pendencia: updatedData.Pendencia,
                     OBS: record.OBS ? `${record.OBS}\n[CONCLUÍDO] ${updatedData.OBS}` : `[CONCLUÍDO] ${updatedData.OBS}`,
-                    // FIX: Use 'as const' to ensure TypeScript infers the correct literal type for Status,
-                    // preventing it from being widened to a generic 'string'.
                     Status: updatedData.Pendencia ? 'Pendente' as const : 'Concluído' as const
                 };
             }
@@ -436,14 +465,10 @@ const App = () => {
     };
     
     const handleUpdateFullRecord = async (updatedRecord: MaintenanceRecord) => {
-        // Fix: Avoid mutation by creating a new object with the correct Status type inside the map.
         const updatedRecords = maintenanceData.map(record =>
             record.ID === updatedRecord.ID 
                 ? { 
                     ...updatedRecord, 
-                    // Also update status based on pendency
-                    // FIX: Use 'as const' to ensure TypeScript infers the correct literal type for Status,
-                    // preventing it from being widened to a generic 'string'.
                     Status: updatedRecord.Pendencia ? 'Pendente' as const : 'Concluído' as const
                 } 
                 : record
@@ -504,11 +529,9 @@ const App = () => {
             const monthMatch = monthFilter === 'all' || (recordDate.getUTCMonth() + 1).toString() === monthFilter;
             const clientMatch = clientFilter === 'all' || comp.Cliente === clientFilter;
             
-            // If client filter is active, only match components for that client.
             if(clientFilter !== 'all'){
                 return clientMatch && yearMatch && monthMatch;
             }
-            // Otherwise, match components for all clients visible in the filtered maintenance data.
             return filteredClients.has(comp.Cliente) && yearMatch && monthMatch;
         });
     }, [filteredData, componentReplacements, clientFilter, monthFilter, yearFilter]);

@@ -41,6 +41,8 @@ export interface ComponentReplacementRecord {
     OBS: string;
 }
 
-export interface GitHubTokenConfig {
+export interface GitHubConfig {
     token: string;
+    owner: string;
+    repo: string;
 }

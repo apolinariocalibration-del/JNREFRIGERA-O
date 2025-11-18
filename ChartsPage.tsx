@@ -54,11 +54,11 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
             const type = record.Serviço || 'Não especificado';
             acc[type] = (acc[type] || 0) + 1;
             return acc;
-        }, {});
+        }, {} as Record<string, number>);
         
         // Technician activity counts (from ALL data)
         const technicianActivityCounts = allMaintenanceData.reduce((acc, record) => {
-            const team = (record.Equipe || '').split(/\\|\//);
+            const team = (record.Equipe || '').split(/[\\\/,]/);
             team.forEach(tech => {
                 const trimmedTech = tech.trim();
                 if (trimmedTech && trimmedTech.toLowerCase() !== 'bruno') {
@@ -67,14 +67,14 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
                 }
             });
             return acc;
-        }, {});
+        }, {} as Record<string, number>);
 
         // Component replacement counts are based on ALL data
         const componentReplacementCounts = componentReplacements.reduce((acc, record) => {
             const component = record.Componente || 'Não especificado';
             acc[component] = (acc[component] || 0) + 1;
             return acc;
-        }, {});
+        }, {} as Record<string, number>);
 
         const dailyClientData = maintenanceData.reduce((acc, record) => {
             // Use UTC date parts to create a timezone-agnostic date string key, ensuring consistency across all users.
@@ -118,8 +118,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
             return diffMs / (1000 * 60 * 60); // convert to hours
         };
 
-        // FIX: Provide a type for the accumulator to avoid implicit 'any' and related errors.
-        const aggregatedDurationData = maintenanceData.reduce((acc: Record<string, Record<string, number>>, record) => {
+        const aggregatedDurationData = maintenanceData.reduce((acc, record) => {
             const client = record.Cliente;
             const service = record.Serviço;
             const duration = calculateDuration(record.HoraInicio, record.HoraFim);
@@ -134,14 +133,12 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
         }, {} as Record<string, Record<string, number>>);
         
         const sortedClients = Object.keys(aggregatedDurationData).sort((a, b) => {
-            // FIX: Cast `Object.values` result to number[] to ensure correct type inference in `reduce`.
-            const totalA = (Object.values(aggregatedDurationData[a]) as number[]).reduce((sum, d) => sum + d, 0);
-            const totalB = (Object.values(aggregatedDurationData[b]) as number[]).reduce((sum, d) => sum + d, 0);
+            const totalA = Object.values(aggregatedDurationData[a]).reduce((sum, d) => sum + d, 0);
+            const totalB = Object.values(aggregatedDurationData[b]).reduce((sum, d) => sum + d, 0);
             return totalB - totalA;
         });
 
         const serviceTypes = [...new Set(maintenanceData.map(r => r.Serviço))];
-        // FIX: Add an index signature to allow indexing with a generic string 'service'.
         const serviceColors: Record<string, string> = {
             'Corretiva': '#ef4444',
             'Preventiva': '#3b82f6',
@@ -149,8 +146,6 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
             'Obra/Instalação': '#8b5cf6',
         };
 
-        // FIX: Explicitly type `service` as string to prevent it from being inferred
-        // as `unknown`, which would cause an indexing error.
         const durationDatasets = serviceTypes.map((service: string) => ({
             label: service,
             data: sortedClients.map(client => aggregatedDurationData[client][service] || 0),
@@ -186,7 +181,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function(context: any) {
                             let label = context.dataset.label || '';
                             if (label) {
                                 label += ': ';
@@ -391,7 +386,7 @@ const ChartsPage: React.FC<ChartsPageProps> = ({
                         weight: 'bold',
                         size: 14
                     },
-                    formatter: (value) => {
+                    formatter: (value: number) => {
                         return value > 0 ? value : null;
                     }
                 }
