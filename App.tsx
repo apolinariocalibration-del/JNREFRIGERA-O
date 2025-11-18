@@ -10,11 +10,8 @@ import { normalizeTechnicianName } from './utils';
 
 // --- HELPER FUNCTIONS ---
 
-// Helper to decode base64 content from GitHub API using modern, robust methods.
 const decodeGitHubFileContent = async (base64: string): Promise<any> => {
     try {
-        // Use the fetch API with a data URI for robust, cross-browser Base64 decoding.
-        // This handles UTF-8 characters correctly, which window.atob does not.
         const response = await fetch(`data:application/json;base64,${base64.trim()}`);
         if (!response.ok) {
             throw new Error('Failed to decode base64 content via fetch.');
@@ -29,7 +26,6 @@ const decodeGitHubFileContent = async (base64: string): Promise<any> => {
     }
 };
 
-// Helper to convert a UTF-8 string to a Base64 string.
 const utf8ToBase64 = (str: string): string => {
     const bytes = new TextEncoder().encode(str);
     let binaryString = '';
@@ -197,26 +193,24 @@ const App = () => {
     const [newlyAddedRecordId, setNewlyAddedRecordId] = useState<number | null>(null);
 
 
-    const fetchData = useCallback(async (isManualRefresh = false) => {
-        if (!isManualRefresh) setIsLoading(true);
-        else {
+    const syncWithRemote = useCallback(async (isManualRefresh = false) => {
+        if (isManualRefresh) {
             setIsRefreshing(true);
             setRefreshMessage("Sincronizando com o servidor...");
+        } else if (maintenanceData.length > 0) {
+            // It's a background sync, show subtle indicator
+            setIsRefreshing(true);
+        } else {
+            // First time load with empty cache, main loader should be visible
+            setIsLoading(true);
         }
-    
+
         setFetchError(null);
-    
         let dataFromSource: { maintenanceRecords: any[], componentReplacements: any[] } | null = null;
         let source = "Cache Local";
-    
+
         const config = githubConfig;
-        const canFetchFromGitHub = 
-            config && 
-            config.owner && 
-            config.repo && 
-            config.token &&
-            config.owner !== GITHUB_DEFAULTS.OWNER &&
-            config.repo !== GITHUB_DEFAULTS.REPO;
+        const canFetchFromGitHub = config && config.owner && config.repo && config.token && config.owner !== GITHUB_DEFAULTS.OWNER && config.repo !== GITHUB_DEFAULTS.REPO;
     
         if (canFetchFromGitHub) {
             try {
@@ -235,14 +229,12 @@ const App = () => {
                 source = "GitHub";
 
             } catch (error) {
-                console.error("Failed to fetch from GitHub, falling back to local data:", error);
-                if (isManualRefresh) setRefreshMessage("Falha ao buscar do GitHub. Usando dados locais.");
-                
-                let errorMessage = "Não foi possível sincronizar com o GitHub. Verifique sua conexão ou a configuração do repositório.";
-                if (error.message.includes('404')) {
-                    errorMessage = "Repositório ou arquivo não encontrado no GitHub. Verifique se o 'Dono', 'Nome do Repositório' estão corretos e se o arquivo 'public/data.json' existe. O repositório também não pode ser privado.";
+                console.error("Failed to fetch from GitHub, will use local data:", error);
+                let errorMessage = "Não foi possível sincronizar com o GitHub. Exibindo dados locais.";
+                 if (error.message.includes('404')) {
+                    errorMessage = "Repositório ou arquivo não encontrado. Verifique a configuração e se o arquivo 'public/data.json' existe.";
                 } else if (error.message.includes('403')) {
-                    errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso ('repo'). Pode ser também que o limite de requisições da API do GitHub foi excedido.";
+                    errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso.";
                 } else if (error.message.includes('401')) {
                     errorMessage = "Token de acesso inválido ou expirado. Por favor, verifique a configuração.";
                 }
@@ -258,28 +250,25 @@ const App = () => {
                 source = "Arquivo Local (Base)";
             } catch (error) {
                 console.error("Failed to fetch local data file:", error);
-                 if (isManualRefresh) setRefreshMessage("Erro ao carregar dados locais.");
+                if (maintenanceData.length === 0) {
+                     setFetchError("Falha ao carregar dados iniciais. Verifique sua conexão.");
+                }
             }
         }
     
         if (dataFromSource) {
-            const maintenance = (dataFromSource.maintenanceRecords || [])
-                .map((r: any) => ({ ...r, Data: new Date(r.Data) }))
-                .sort(sortByDateDesc);
-            const components = (dataFromSource.componentReplacements || [])
-                .map((r: any) => ({ ...r, Data: new Date(r.Data) }))
-                .sort(sortByDateDesc);
-    
+            const maintenance = (dataFromSource.maintenanceRecords || []).map((r: any) => ({ ...r, Data: new Date(r.Data) })).sort(sortByDateDesc);
+            const components = (dataFromSource.componentReplacements || []).map((r: any) => ({ ...r, Data: new Date(r.Data) })).sort(sortByDateDesc);
             setMaintenanceData(maintenance);
             setComponentReplacements(components);
             await db.saveAllMaintenanceRecords(maintenance);
             await db.saveAllComponentReplacements(components);
-            if (isManualRefresh && source === 'GitHub') {
+            if (isRefreshing || isManualRefresh) {
                 setRefreshMessage(`Dados sincronizados via ${source}!`);
             }
         }
         
-        if (isManualRefresh) {
+        if (isRefreshing || isManualRefresh) {
             setTimeout(() => {
                 setIsRefreshing(false);
                 setRefreshMessage(null);
@@ -287,7 +276,8 @@ const App = () => {
         }
     
         setIsLoading(false);
-    }, [githubConfig]);
+    }, [githubConfig, maintenanceData.length]);
+
 
     const publishData = async (
         updatedMaintenance: MaintenanceRecord[],
@@ -315,7 +305,6 @@ const App = () => {
             let latestSha: string | undefined = undefined;
             const fileUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
             
-            // Always get the latest SHA right before publishing to minimize conflicts.
             const getResponse = await fetch(fileUrl, {
                 headers: { 'Authorization': `token ${githubConfig.token}` },
                 cache: 'no-store'
@@ -355,7 +344,7 @@ const App = () => {
             
             if (!putResponse.ok) {
                 if (putResponse.status === 409) {
-                    throw new Error('409 Conflict'); // Specific error for sync conflict
+                    throw new Error('409 Conflict'); 
                 }
                 const errorData = await putResponse.json();
                 throw new Error(`GitHub API Error: ${errorData.message || 'Unknown error during file write'}`);
@@ -388,8 +377,7 @@ const App = () => {
         }
     };
     
-     useEffect(() => {
-        // Effect for handling config changes from other tabs/windows via localStorage
+    useEffect(() => {
         const handleStorageChange = (event: StorageEvent) => {
             if (event.key === GITHUB_CONSTANTS.CONFIG_KEY) {
                 const newConfig = event.newValue ? JSON.parse(event.newValue) : null;
@@ -401,37 +389,40 @@ const App = () => {
     }, []);
 
     useEffect(() => {
-        // Effect for fetching data and setting up the refresh interval.
-        // It runs on the initial load and whenever the githubConfig changes.
-        fetchData(); 
+        // --- Offline-First Data Loading Strategy ---
+        const loadAndSync = async () => {
+            // Step 1: Load from local cache instantly for offline access and speed.
+            const cachedMaintenance = await db.getMaintenanceRecords();
+            const cachedComponents = await db.getComponentReplacements();
+            
+            if (cachedMaintenance.length > 0) {
+                setMaintenanceData(cachedMaintenance);
+                setComponentReplacements(cachedComponents);
+                setIsLoading(false); // Show UI immediately with cached data
+            }
 
-        const intervalId = setInterval(() => {
-            console.log("Refreshing data automatically...");
-            fetchData(true);
-        }, 1 * 60 * 1000); // every 1 minute
+            // Step 2: Sync with remote server in the background.
+            syncWithRemote(false);
+        };
+        
+        loadAndSync();
 
-        // Cleanup interval when the component unmounts or when the config changes.
-        return () => clearInterval(intervalId);
-    }, [fetchData]);
-
-    useEffect(() => {
-        // Effect to refresh data when the tab becomes visible again.
-        // This helps keep data synchronized across multiple devices/tabs.
+        // Step 3: Set up periodic and event-based syncs.
+        const intervalId = setInterval(() => syncWithRemote(false), 1 * 60 * 1000); // every 1 minute
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                console.log("Tab is visible again, refreshing data...");
-                fetchData(true);
+                syncWithRemote(false);
             }
         };
-
         document.addEventListener('visibilitychange', handleVisibilityChange);
-
+        
         return () => {
+            clearInterval(intervalId);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [fetchData]);
+    }, [syncWithRemote]);
 
-
+    
     // --- HANDLER FUNCTIONS ---
     
     const handleLogin = (user: string, pass: string) => {
@@ -637,7 +628,7 @@ const App = () => {
                                 <NavButton page="charts" label="Gráficos" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>} />
                             </nav>
                             <div className="flex items-center gap-4">
-                                <button onClick={() => fetchData(true)} className="p-2 rounded-full hover:bg-slate-700 transition-colors" title="Sincronizar dados">
+                                <button onClick={() => syncWithRemote(true)} className="p-2 rounded-full hover:bg-slate-700 transition-colors" title="Sincronizar dados">
                                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 4h-5v5M4 20h5v-5M12 4V2M12 22v-2M4 12H2M22 12h-2" /></svg>
                                 </button>
                                 {userRole === 'admin' && (
@@ -650,7 +641,7 @@ const App = () => {
                                 </button>
                             </div>
                         </div>
-                         {isRefreshing && (
+                         {isRefreshing && refreshMessage && (
                              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-slate-700 text-white text-xs px-3 py-1 rounded-b-md shadow-lg">
                                  {refreshMessage}
                              </div>
