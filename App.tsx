@@ -11,15 +11,15 @@ import { normalizeTechnicianName } from './utils';
 // --- HELPER FUNCTIONS ---
 
 // Helper to decode base64 content from GitHub API using modern, robust methods.
-const decodeGitHubFileContent = (base64: string): any => {
+const decodeGitHubFileContent = async (base64: string): Promise<any> => {
     try {
-        const binaryString = window.atob(base64.trim());
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        // Use the fetch API with a data URI for robust, cross-browser Base64 decoding.
+        // This handles UTF-8 characters correctly, which window.atob does not.
+        const response = await fetch(`data:application/json;base64,${base64.trim()}`);
+        if (!response.ok) {
+            throw new Error('Failed to decode base64 content via fetch.');
         }
-        const decodedString = new TextDecoder('utf-8').decode(bytes);
-        return JSON.parse(decodedString);
+        return await response.json();
     } catch (e) {
         console.error("Failed to decode or parse GitHub file content:", e);
         if (e instanceof SyntaxError) {
@@ -231,7 +231,7 @@ const App = () => {
 
                 const fileData = await response.json();
                 dataFileShaRef.current = fileData.sha;
-                dataFromSource = decodeGitHubFileContent(fileData.content);
+                dataFromSource = await decodeGitHubFileContent(fileData.content);
                 source = "GitHub";
 
             } catch (error) {
