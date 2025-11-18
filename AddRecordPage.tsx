@@ -3,6 +3,8 @@ import { MaintenanceRecord, ComponentReplacementRecord, ComponentType } from './
 import { COMPONENT_LIST } from './constants';
 import { formatDateForInput, parseDateFromInput, normalizeTechnicianName } from './utils';
 
+declare var XLSX: any;
+
 // --- HELPER FUNCTIONS ---
 const getUniqueTechnicians = (records: MaintenanceRecord[]): string[] => {
     const techSet = new Set<string>();
@@ -212,15 +214,67 @@ const ComponentReplacementSection: React.FC<ComponentReplacementSectionProps> = 
     );
 };
 
+interface ImportSectionProps {
+    onImport: (maintenanceData: any[], componentData: any[]) => void;
+}
+
+const ImportSection: React.FC<ImportSectionProps> = ({ onImport }) => {
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const bstr = evt.target?.result;
+            const wb = XLSX.read(bstr, { type: 'binary' });
+            
+            // Assuming 1st sheet is Maintenance
+            const wsName = wb.SheetNames[0];
+            const ws = wb.Sheets[wsName];
+            const data = XLSX.utils.sheet_to_json(ws);
+            
+            // Try to find a Components sheet
+            let componentsData: any[] = [];
+            const compSheetName = wb.SheetNames.find((n: string) => n.toLowerCase().includes('component'));
+            if (compSheetName) {
+                const wsComp = wb.Sheets[compSheetName];
+                componentsData = XLSX.utils.sheet_to_json(wsComp);
+            }
+
+            onImport(data, componentsData);
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    return (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-6 h-full flex flex-col justify-center items-center text-center">
+            <div className="p-4 bg-slate-700/50 rounded-full mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.414l5 5a1 1 0 01.414 1.414V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">Importar Planilha</h2>
+            <p className="text-slate-400 text-sm mb-6 max-w-xs">Carregue um arquivo Excel (.xlsx) ou CSV para adicionar múltiplos registros de uma vez.</p>
+            
+            <label className="cursor-pointer bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-md transition-colors">
+                <span>Selecionar Arquivo</span>
+                <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} />
+            </label>
+            <p className="mt-2 text-xs text-slate-500">Certifique-se que as colunas correspondem (Data, Cliente, Serviço...)</p>
+        </div>
+    );
+}
+
 // --- MAIN PAGE COMPONENT ---
 interface AddRecordPageProps {
     onAddRecord: (record: Omit<MaintenanceRecord, 'ID' | 'Status'>) => Promise<void>;
     onAddComponentReplacement: (record: Omit<ComponentReplacementRecord, 'ID'>) => Promise<void>;
+    onImportData: (maintenance: any[], components: any[]) => Promise<void>;
     componentReplacements: ComponentReplacementRecord[];
     maintenanceData: MaintenanceRecord[];
 }
 
-const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddComponentReplacement, componentReplacements, maintenanceData }) => {
+const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddComponentReplacement, onImportData, componentReplacements, maintenanceData }) => {
     const allTechnicians = useMemo(() => getUniqueTechnicians(maintenanceData), [maintenanceData]);
     const allClients = useMemo(() => getUniqueClients(maintenanceData), [maintenanceData]);
 
@@ -230,13 +284,18 @@ const AddRecordPage: React.FC<AddRecordPageProps> = ({ onAddRecord, onAddCompone
                 <div className="lg:col-span-3">
                     <AddRecordSection onAdd={onAddRecord} allTechnicians={allTechnicians} allClients={allClients} />
                 </div>
-                <div className="lg:col-span-2">
-                     <ComponentReplacementSection 
-                        records={componentReplacements} 
-                        onAdd={onAddComponentReplacement}
-                        clients={allClients} 
-                        components={COMPONENT_LIST}
-                    />
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                     <div className="flex-grow">
+                        <ImportSection onImport={onImportData} />
+                     </div>
+                     <div className="flex-grow">
+                        <ComponentReplacementSection 
+                            records={componentReplacements} 
+                            onAdd={onAddComponentReplacement}
+                            clients={allClients} 
+                            components={COMPONENT_LIST}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

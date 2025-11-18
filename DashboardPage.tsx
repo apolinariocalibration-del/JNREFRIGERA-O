@@ -470,7 +470,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {isNaN(new Date(record.Data).getTime()) 
-                                                        ? 'Data Inválida' 
+                                                        ? <span className="text-red-400">Data Inválida</span> 
                                                         : new Date(record.Data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                                 </td>
                                                 <td className="px-6 py-4">
