@@ -295,7 +295,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
     const { uniqueClients, uniqueYears } = useMemo(() => {
         const clients = new Set(maintenanceData.map(r => r.Cliente));
-        const years = new Set(maintenanceData.map(r => new Date(r.Data).getUTCFullYear()));
+        const years = new Set(maintenanceData.map(r => {
+            const d = new Date(r.Data);
+            // Safe check for invalid dates
+            if (isNaN(d.getTime())) return new Date().getUTCFullYear();
+            return d.getUTCFullYear();
+        }));
         return {
             uniqueClients: Array.from(clients).sort(),
             uniqueYears: Array.from(years).sort((a, b) => Number(b) - Number(a))
@@ -463,7 +468,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 id={`record-${record.ID}`}
                                                 className={`bg-slate-800 border-b border-slate-700 hover:bg-slate-700/50 transition-colors ${record.ID === newlyAddedRecordId ? 'bg-cyan-900/50' : ''}`}>
                                                 <td className="px-6 py-4 font-medium text-white">{record.ID}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{new Date(record.Data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {isNaN(new Date(record.Data).getTime()) 
+                                                        ? 'Data Inválida' 
+                                                        : new Date(record.Data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                                                </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${record.Status === 'Concluído' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
                                                         {record.Status}

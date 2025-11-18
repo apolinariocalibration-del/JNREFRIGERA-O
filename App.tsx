@@ -234,9 +234,31 @@ const App = () => {
     
         if (!dataFromSource) {
             try {
-                const localFilePath = GITHUB_CONSTANTS.FILE_PATH.replace(/^public\//, '');
-                const response = await fetch(`/${localFilePath}`);
-                if (!response.ok) throw new Error("Local data file not found.");
+                // Try multiple paths to find the local file
+                const pathsToTry = [
+                    'data.json',
+                    '/data.json',
+                    GITHUB_CONSTANTS.FILE_PATH,
+                    GITHUB_CONSTANTS.FILE_PATH.replace(/^public\//, '')
+                ];
+
+                let response = null;
+                for (const path of pathsToTry) {
+                    try {
+                        const res = await fetch(path);
+                        if (res.ok) {
+                            response = res;
+                            break;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+
+                if (!response || !response.ok) {
+                     throw new Error("Local data file not found in any checked path.");
+                }
+
                 dataFromSource = await response.json();
                 source = "Arquivo Local (Base)";
             } catch (localError) {
@@ -249,6 +271,8 @@ const App = () => {
                         errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso.";
                     } else if (gitHubSyncError.message.includes('401')) {
                         errorMessage = "Token de acesso inválido ou expirado. Por favor, verifique a configuração.";
+                    } else if (gitHubSyncError.message === 'Failed to fetch') {
+                        errorMessage = "Erro de conexão com o GitHub. Verifique sua internet ou CORS.";
                     }
                     setFetchError(errorMessage);
                 } else if (maintenanceData.length === 0) {
@@ -259,14 +283,40 @@ const App = () => {
     
         if (dataFromSource) {
             setFetchError(null);
-            const maintenance = (dataFromSource.maintenanceRecords || []).map((r: any) => ({ ...r, Data: new Date(r.Data) })).sort(sortByDateDesc);
-            const components = (dataFromSource.componentReplacements || []).map((r: any) => ({ ...r, Data: new Date(r.Data) })).sort(sortByDateDesc);
-            setMaintenanceData(maintenance);
-            setComponentReplacements(components);
-            await db.saveAllMaintenanceRecords(maintenance);
-            await db.saveAllComponentReplacements(components);
-            if (isRefreshing || isManualRefresh) {
-                setRefreshMessage(`Dados sincronizados via ${source}!`);
+            try {
+                const maintenance = (dataFromSource.maintenanceRecords || [])
+                    .map((r: any) => {
+                        const d = new Date(r.Data);
+                        // Protection against invalid dates causing crashes
+                        return { 
+                            ...r, 
+                            Data: isNaN(d.getTime()) ? new Date() : d 
+                        };
+                    })
+                    .sort(sortByDateDesc);
+
+                const components = (dataFromSource.componentReplacements || [])
+                    .map((r: any) => {
+                         const d = new Date(r.Data);
+                         return { 
+                             ...r, 
+                             Data: isNaN(d.getTime()) ? new Date() : d 
+                         };
+                    })
+                    .sort(sortByDateDesc);
+
+                setMaintenanceData(maintenance);
+                setComponentReplacements(components);
+                await db.saveAllMaintenanceRecords(maintenance);
+                await db.saveAllComponentReplacements(components);
+                if (isRefreshing || isManualRefresh) {
+                    setRefreshMessage(`Dados sincronizados via ${source}!`);
+                }
+            } catch (processError) {
+                console.error("Error processing data:", processError);
+                if (maintenanceData.length === 0) {
+                    setFetchError("Erro ao processar dados recebidos.");
+                }
             }
         }
     
