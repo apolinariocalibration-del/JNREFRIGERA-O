@@ -1,6 +1,23 @@
 {
   "maintenanceRecords": [
     {
+      "Data": "2025-11-18T01:22:41.720Z",
+      "HoraInicio": "",
+      "HoraFim": "",
+      "Serviço": "Corretiva",
+      "Cliente": "BH Shopping",
+      "Equipe": "Thalisson",
+      "Pendencia": "TESTE",
+      "OBS": "",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "",
+      "Especificação do Equipamento": "",
+      "ID": 41,
+      "Status": "Pendente"
+    },
+    {
       "ID": 8,
       "Data": "2024-07-29T03:00:00.000Z",
       "HoraInicio": "10:00",
