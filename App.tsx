@@ -293,8 +293,17 @@ const App = () => {
         updatedMaintenance: MaintenanceRecord[],
         updatedComponents: ComponentReplacementRecord[]
     ): Promise<boolean> => {
-        if (!githubConfig?.token || !githubConfig.owner || !githubConfig.repo) {
-            console.warn("GitHub configuration is incomplete. Opening config modal.");
+        const isConfigInvalid = 
+            !githubConfig?.token || 
+            !githubConfig.owner || 
+            !githubConfig.repo ||
+            githubConfig.owner === GITHUB_DEFAULTS.OWNER ||
+            githubConfig.repo === GITHUB_DEFAULTS.REPO;
+    
+        if (isConfigInvalid) {
+            console.warn("GitHub configuration is incomplete or uses default placeholders. Opening config modal.");
+            setPublishStatus('error');
+            setPublishMessage('A publicação automática não está configurada. Por favor, adicione as informações do seu repositório GitHub para habilitar a sincronização.');
             setIsConfigModalOpen(true);
             return false;
         }
