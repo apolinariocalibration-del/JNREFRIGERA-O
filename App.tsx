@@ -79,6 +79,25 @@ const GitHubConfigModal: React.FC<{
                     <p className="font-bold">Aviso de Segurança</p>
                     <p>O Token é armazenado no seu navegador. Use um token com as permissões mínimas (`repo`) e considere revogá-lo periodicamente.</p>
                 </div>
+                
+                <div className="my-6 text-sm text-slate-400">
+                    <p className="font-semibold text-slate-300 mb-2">Solução de Problemas de Acesso:</p>
+                    <ul className="list-disc list-inside space-y-2">
+                        <li>
+                            <strong>Permissões (Escopo):</strong> Certifique-se de que seu token tem o escopo <code className="bg-slate-700 text-cyan-300 px-1 rounded-sm text-xs">repo</code> habilitado para permitir acesso a repositórios.
+                        </li>
+                        <li>
+                            <strong>Autorização SSO:</strong> Se o repositório pertence a uma organização que exige Single Sign-On (SSO), você <strong>precisa</strong> autorizar o token para essa organização. Após criar o token, clique em <code className="bg-slate-700 text-cyan-300 px-1 rounded-sm text-xs">Configure SSO</code> e autorize o acesso.
+                        </li>
+                        <li>
+                            <strong>Validade:</strong> Verifique se o token não está expirado.
+                        </li>
+                        <li>
+                            <strong>Token correto:</strong> Confirme que você copiou e colou o token completo e sem espaços extras.
+                        </li>
+                    </ul>
+                </div>
+                
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Token de Acesso Pessoal (PAT)</label>
@@ -114,7 +133,8 @@ const PublishStatusModal: React.FC<{ status: 'idle' | 'publishing' | 'success' |
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-lg shadow-2xl p-6 w-full max-w-sm border border-slate-700 text-center">
                 <div className="flex justify-center mb-4"><Icon /></div>
-                <p className="text-white font-semibold mb-2">{message}</p>
+                <p className="text-white font-semibold mb-2">{status === 'error' ? 'Erro na Publicação' : 'Status da Publicação'}</p>
+                <p className="text-slate-300 text-sm">{message}</p>
                 {(status === 'success' || status === 'error') && (
                     <button onClick={onClose} className="mt-4 px-5 py-2 bg-slate-600 hover:bg-slate-500 rounded-md font-semibold text-sm">Fechar</button>
                 )}
@@ -296,8 +316,15 @@ const App = () => {
 
         } catch (error) {
             console.error('Failed to publish data:', error);
+            let detailedMessage = `Erro desconhecido: ${error.message}`;
+            if (error.message.includes('Resource not accessible')) {
+                detailedMessage = "Acesso negado. Verifique se o seu token do GitHub tem as permissões corretas (`repo`) e se foi autorizado para a organização (SSO), caso aplicável. Abra a configuração para ver mais detalhes.";
+            } else if (error.message.includes('401')) {
+                 detailedMessage = "Token inválido ou expirado. Por favor, verifique seu token de acesso pessoal na tela de configuração.";
+            }
+            
             setPublishStatus('error');
-            setPublishMessage(`Falha na publicação: ${error.message}`);
+            setPublishMessage(detailedMessage);
             return false;
         }
     };
