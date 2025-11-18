@@ -215,8 +215,8 @@ const App = () => {
             config.owner && 
             config.repo && 
             config.token &&
-            config.owner !== 'seu-usuario-ou-organizacao' &&
-            config.repo !== 'seu-repositorio-do-dashboard';
+            config.owner !== GITHUB_DEFAULTS.OWNER &&
+            config.repo !== GITHUB_DEFAULTS.REPO;
     
         if (canFetchFromGitHub) {
             try {
