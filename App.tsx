@@ -313,8 +313,9 @@ const App = () => {
 
         try {
             let latestSha: string | undefined = undefined;
-
             const fileUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
+            
+            // Always get the latest SHA right before publishing to minimize conflicts.
             const getResponse = await fetch(fileUrl, {
                 headers: { 'Authorization': `token ${githubConfig.token}` },
                 cache: 'no-store'
@@ -323,11 +324,9 @@ const App = () => {
             if (getResponse.ok) {
                 const fileData = await getResponse.json();
                 latestSha = fileData.sha;
-            } else if (getResponse.status === 404) {
-                console.log("data.json not found on GitHub. A new file will be created.");
-            } else {
-                const errorBody = await getResponse.json().catch(() => ({ message: `GitHub API returned status ${getResponse.status}` }));
-                throw new Error(`Failed to check for existing data file. Reason: ${errorBody.message || 'Unknown error'}`);
+            } else if (getResponse.status !== 404) {
+                 const errorBody = await getResponse.json().catch(() => ({ message: `GitHub API returned status ${getResponse.status}` }));
+                 throw new Error(`Failed to check for existing data file. Reason: ${errorBody.message || 'Unknown error'}`);
             }
 
             const content = {
@@ -353,8 +352,11 @@ const App = () => {
                 },
                 body: JSON.stringify(requestBody)
             });
-
+            
             if (!putResponse.ok) {
+                if (putResponse.status === 409) {
+                    throw new Error('409 Conflict'); // Specific error for sync conflict
+                }
                 const errorData = await putResponse.json();
                 throw new Error(`GitHub API Error: ${errorData.message || 'Unknown error during file write'}`);
             }
@@ -369,8 +371,11 @@ const App = () => {
         } catch (error) {
             console.error('Failed to publish data:', error);
             let detailedMessage = `Erro desconhecido: ${error.message}`;
-             if (error.message.includes('Resource not accessible') || error.message.includes('Not Found')) {
-                detailedMessage = "Acesso negado ou repositório não encontrado. Verifique se o Dono (OWNER) e o Repositório (REPO) estão corretos. Além disso, certifique-se de que seu token tem permissão `repo` e, se necessário, foi autorizado para a organização (SSO).";
+
+            if (error.message.includes('409 Conflict')) {
+                detailedMessage = "Conflito de Sincronização: Outro usuário salvou alterações. Por favor, atualize os dados (botão 🔄 no topo) e aplique suas mudanças novamente. Suas alterações atuais não foram salvas.";
+            } else if (error.message.includes('Resource not accessible') || error.message.includes('Not Found')) {
+                detailedMessage = "Acesso negado ou repositório não encontrado. Verifique se o Dono (OWNER) e o Repositório (REPO) estão corretos e se o seu token tem permissão `repo`.";
             } else if (error.message.includes('401') || error.message.includes('Bad credentials')) {
                  detailedMessage = "Token inválido ou expirado. Por favor, verifique seu token de acesso pessoal na tela de configuração.";
             } else if (error.message.includes('API rate limit exceeded')) {
@@ -403,10 +408,27 @@ const App = () => {
         const intervalId = setInterval(() => {
             console.log("Refreshing data automatically...");
             fetchData(true);
-        }, 5 * 60 * 1000); // every 5 minutes
+        }, 1 * 60 * 1000); // every 1 minute
 
         // Cleanup interval when the component unmounts or when the config changes.
         return () => clearInterval(intervalId);
+    }, [fetchData]);
+
+    useEffect(() => {
+        // Effect to refresh data when the tab becomes visible again.
+        // This helps keep data synchronized across multiple devices/tabs.
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log("Tab is visible again, refreshing data...");
+                fetchData(true);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [fetchData]);
 
 
@@ -491,6 +513,15 @@ const App = () => {
     };
     
     const handleUpdateFullRecord = async (updatedRecord: MaintenanceRecord) => {
+        if (updatedRecord.Equipe) {
+            const normalizedTeam = updatedRecord.Equipe
+                .split(/[\\\/,]/)
+                .map(name => normalizeTechnicianName(name.trim()))
+                .filter(name => name)
+                .join(' / ');
+            updatedRecord.Equipe = normalizedTeam;
+        }
+
         const updatedRecords = maintenanceData.map(record =>
             record.ID === updatedRecord.ID 
                 ? { 
@@ -602,7 +633,7 @@ const App = () => {
                             </div>
                             <nav className="flex items-center gap-2">
                                 <NavButton page="dashboard" label="Dashboard" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>} />
-                                {userRole === 'admin' && <NavButton page="add" label="Adicionar" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>} />}
+                                {userRole === 'admin' && <NavButton page="add" label="Adicionar" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110 2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>} />}
                                 <NavButton page="charts" label="Gráficos" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>} />
                             </nav>
                             <div className="flex items-center gap-4">
@@ -629,15 +660,23 @@ const App = () => {
 
                 {fetchError && (
                     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="bg-red-900/50 border border-red-700 text-red-200 text-sm rounded-md p-4 my-4 flex items-start gap-4">
+                        <div className="bg-red-900/50 border border-red-700 text-red-200 text-sm rounded-md p-4 my-4 flex items-center gap-4">
                             <div>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                 </svg>
                             </div>
-                            <div>
+                            <div className="flex-grow">
                                 <strong className="font-semibold">Erro de Sincronização:</strong>
                                 <p>{fetchError}</p>
+                            </div>
+                             <div>
+                                <button
+                                    onClick={() => setIsConfigModalOpen(true)}
+                                    className="bg-red-500/30 hover:bg-red-500/50 text-white font-semibold py-2 px-4 rounded-md transition-colors whitespace-nowrap"
+                                >
+                                    Abrir Configuração
+                                </button>
                             </div>
                         </div>
                     </div>
