@@ -198,65 +198,67 @@ const App = () => {
             setIsRefreshing(true);
             setRefreshMessage("Sincronizando com o servidor...");
         } else if (maintenanceData.length > 0) {
-            // It's a background sync, show subtle indicator
             setIsRefreshing(true);
         } else {
-            // First time load with empty cache, main loader should be visible
             setIsLoading(true);
         }
-
-        setFetchError(null);
+    
         let dataFromSource: { maintenanceRecords: any[], componentReplacements: any[] } | null = null;
         let source = "Cache Local";
-
+        let gitHubSyncError: Error | null = null;
+    
         const config = githubConfig;
-        const canFetchFromGitHub = config && config.owner && config.repo && config.token && config.owner !== GITHUB_DEFAULTS.OWNER && config.repo !== GITHUB_DEFAULTS.REPO;
+        const canFetchFromGitHub = !!(config?.token && config?.owner && config?.repo && config.owner !== GITHUB_DEFAULTS.OWNER && config.repo !== GITHUB_DEFAULTS.REPO);
     
         if (canFetchFromGitHub) {
             try {
                 const headers: HeadersInit = { 'Authorization': `token ${config.token}` };
                 const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${GITHUB_CONSTANTS.FILE_PATH}`;
                 const response = await fetch(url, { headers, cache: "no-store" });
-
+    
                 if (response.status === 401) throw new Error('401 Unauthorized');
                 if (response.status === 403) throw new Error('403 Forbidden');
                 if (response.status === 404) throw new Error('404 Not Found');
                 if (!response.ok) throw new Error(`GitHub API request failed with status ${response.status}`);
-
+    
                 const fileData = await response.json();
                 dataFileShaRef.current = fileData.sha;
                 dataFromSource = await decodeGitHubFileContent(fileData.content);
                 source = "GitHub";
-
+    
             } catch (error) {
                 console.error("Failed to fetch from GitHub, will use local data:", error);
-                let errorMessage = "Não foi possível sincronizar com o GitHub. Exibindo dados locais.";
-                 if (error.message.includes('404')) {
-                    errorMessage = "Repositório ou arquivo não encontrado. Verifique a configuração e se o arquivo 'public/data.json' existe.";
-                } else if (error.message.includes('403')) {
-                    errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso.";
-                } else if (error.message.includes('401')) {
-                    errorMessage = "Token de acesso inválido ou expirado. Por favor, verifique a configuração.";
-                }
-                setFetchError(errorMessage);
+                gitHubSyncError = error as Error;
             }
         }
-        
+    
         if (!dataFromSource) {
             try {
-                const response = await fetch(`/${GITHUB_CONSTANTS.FILE_PATH}`);
+                const localFilePath = GITHUB_CONSTANTS.FILE_PATH.replace(/^public\//, '');
+                const response = await fetch(`/${localFilePath}`);
                 if (!response.ok) throw new Error("Local data file not found.");
                 dataFromSource = await response.json();
                 source = "Arquivo Local (Base)";
-            } catch (error) {
-                console.error("Failed to fetch local data file:", error);
-                if (maintenanceData.length === 0) {
+            } catch (localError) {
+                console.error("Failed to fetch local data file:", localError);
+                if (gitHubSyncError) {
+                    let errorMessage = "Não foi possível sincronizar com o GitHub. Exibindo dados de cache.";
+                     if (gitHubSyncError.message.includes('404')) {
+                        errorMessage = `Repositório ou arquivo não encontrado. Verifique a configuração e se o arquivo '${GITHUB_CONSTANTS.FILE_PATH}' existe no repositório.`;
+                    } else if (gitHubSyncError.message.includes('403')) {
+                        errorMessage = "Acesso negado. Verifique as permissões do seu token de acesso.";
+                    } else if (gitHubSyncError.message.includes('401')) {
+                        errorMessage = "Token de acesso inválido ou expirado. Por favor, verifique a configuração.";
+                    }
+                    setFetchError(errorMessage);
+                } else if (maintenanceData.length === 0) {
                      setFetchError("Falha ao carregar dados iniciais. Verifique sua conexão.");
                 }
             }
         }
     
         if (dataFromSource) {
+            setFetchError(null);
             const maintenance = (dataFromSource.maintenanceRecords || []).map((r: any) => ({ ...r, Data: new Date(r.Data) })).sort(sortByDateDesc);
             const components = (dataFromSource.componentReplacements || []).map((r: any) => ({ ...r, Data: new Date(r.Data) })).sort(sortByDateDesc);
             setMaintenanceData(maintenance);
@@ -267,7 +269,7 @@ const App = () => {
                 setRefreshMessage(`Dados sincronizados via ${source}!`);
             }
         }
-        
+    
         if (isRefreshing || isManualRefresh) {
             setTimeout(() => {
                 setIsRefreshing(false);
