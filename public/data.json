@@ -1,23 +1,6 @@
 {
   "maintenanceRecords": [
     {
-      "Data": "2025-11-18T12:00:00.000Z",
-      "HoraInicio": "22:46",
-      "HoraFim": "",
-      "Serviço": "Corretiva",
-      "Cliente": "Bar Pompeu",
-      "Equipe": "Thalisson",
-      "Pendencia": "teste",
-      "OBS": "teste",
-      "Gás": "",
-      "Local": "",
-      "Equipamento": "",
-      "Especificação da Manutenção": "",
-      "Especificação do Equipamento": "",
-      "ID": 41,
-      "Status": "Pendente"
-    },
-    {
       "ID": 11,
       "Data": "2024-07-30T03:00:00.000Z",
       "HoraInicio": "09:00",
