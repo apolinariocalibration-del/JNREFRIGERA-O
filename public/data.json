@@ -1,6 +1,23 @@
 {
   "maintenanceRecords": [
     {
+      "Data": "2025-11-20T12:00:00.000Z",
+      "HoraInicio": "",
+      "HoraFim": "",
+      "Serviço": "Corretiva",
+      "Cliente": "CCPR",
+      "Equipe": "Thalisson",
+      "Pendencia": "teste",
+      "OBS": "teste",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "",
+      "Especificação do Equipamento": "",
+      "ID": 1763612336950,
+      "Status": "Pendente"
+    },
+    {
       "Data": "2025-11-18T12:00:00.000Z",
       "HoraInicio": "22:48",
       "HoraFim": "",
