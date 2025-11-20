@@ -72,6 +72,24 @@
       "LastModified": 1763663959560
     },
     {
+      "Data": "2025-11-20T12:00:00.000Z",
+      "HoraInicio": "",
+      "HoraFim": "",
+      "Serviço": "Corretiva",
+      "Cliente": "Casa Carne",
+      "Equipe": "Gabriel",
+      "Pendencia": "",
+      "OBS": "",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204367,
+      "Status": "Pendente",
+      "LastModified": 1763681858264
+    },
+    {
       "Data": "2025-11-18T12:00:00.000Z",
       "HoraInicio": "22:48",
       "HoraFim": "",
@@ -104,7 +122,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 8,
@@ -122,7 +140,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 9,
@@ -140,7 +158,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 1,
@@ -158,7 +176,7 @@
       "Pendencia": "",
       "Gás": "R404a",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 2,
@@ -176,7 +194,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 3,
@@ -194,7 +212,7 @@
       "Pendencia": "Aguardando chegada de novo microventilador.",
       "Gás": "",
       "Status": "Pendente",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 4,
@@ -212,7 +230,7 @@
       "Pendencia": "",
       "Gás": "R22",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 5,
@@ -230,7 +248,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 12,
@@ -248,7 +266,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 6,
@@ -266,7 +284,7 @@
       "Pendencia": "",
       "Gás": "R404a",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 7,
@@ -284,7 +302,7 @@
       "Pendencia": "Sugerir troca preventiva da contatora.",
       "Gás": "",
       "Status": "Pendente",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 10,
@@ -302,7 +320,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 40,
@@ -320,7 +338,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 39,
@@ -338,7 +356,7 @@
       "Pendencia": "",
       "Gás": "R22",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 38,
@@ -356,7 +374,7 @@
       "Pendencia": "",
       "Gás": "R22",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 37,
@@ -374,7 +392,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 36,
@@ -392,7 +410,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 35,
@@ -410,7 +428,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 34,
@@ -428,7 +446,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 33,
@@ -446,7 +464,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 32,
@@ -464,7 +482,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 31,
@@ -482,7 +500,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 30,
@@ -500,7 +518,7 @@
       "Pendencia": "Substituição de R404",
       "Gás": "",
       "Status": "Pendente",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 26,
@@ -518,7 +536,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 27,
@@ -536,7 +554,7 @@
       "Pendencia": "",
       "Gás": "R22",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 28,
@@ -554,7 +572,7 @@
       "Pendencia": "",
       "Gás": "R22",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 29,
@@ -572,7 +590,7 @@
       "Pendencia": "",
       "Gás": "R134A",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 22,
@@ -590,7 +608,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 23,
@@ -608,7 +626,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 24,
@@ -626,7 +644,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 25,
@@ -644,7 +662,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 20,
@@ -662,7 +680,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 21,
@@ -680,7 +698,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 19,
@@ -698,7 +716,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 18,
@@ -716,7 +734,7 @@
       "Pendencia": "Válvula de R40 R22",
       "Gás": "R22",
       "Status": "Pendente",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 17,
@@ -734,7 +752,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 15,
@@ -752,7 +770,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 16,
@@ -770,7 +788,7 @@
       "Pendencia": "",
       "Gás": "",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 14,
@@ -788,7 +806,7 @@
       "Pendencia": "Resistências do",
       "Gás": "",
       "Status": "Pendente",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 13,
@@ -806,7 +824,7 @@
       "Pendencia": "",
       "Gás": "R404",
       "Status": "Concluído",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     }
   ],
   "componentReplacements": [
@@ -823,7 +841,7 @@
       "Cliente": "Ffood",
       "Componente": "Disjuntor",
       "OBS": "Disjuntor geral da câmara 02.",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567842
     },
     {
       "ID": 2,
@@ -831,7 +849,7 @@
       "Cliente": "Dupain",
       "Componente": "Relé",
       "OBS": "Relé de partida do compressor.",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567842
     },
     {
       "ID": 3,
@@ -839,7 +857,7 @@
       "Cliente": "JJL",
       "Componente": "Microventilador",
       "OBS": "Ventilador da unidade condensadora.",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567842
     },
     {
       "ID": 1,
@@ -847,7 +865,7 @@
       "Cliente": "Palineli",
       "Componente": "Contatora",
       "OBS": "Substituída durante manutenção corretiva.",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567841
     },
     {
       "ID": 4,
@@ -855,7 +873,7 @@
       "Cliente": "Snowfrut",
       "Componente": "Ventilador do Evaporador",
       "OBS": "Troca agendada.",
-      "LastModified": 1763650730701
+      "LastModified": 1763681567842
     }
   ]
 }
