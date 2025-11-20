@@ -734,6 +734,13 @@
   ],
   "componentReplacements": [
     {
+      "Data": "2025-11-20T12:00:00.000Z",
+      "Cliente": "Casa Carne",
+      "Componente": "Compressor",
+      "OBS": "",
+      "ID": 1763615860215
+    },
+    {
       "ID": 5,
       "Data": "2024-07-30T03:00:00.000Z",
       "Cliente": "Ffood",
