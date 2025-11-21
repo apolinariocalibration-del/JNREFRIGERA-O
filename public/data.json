@@ -164,8 +164,8 @@
     },
     {
       "Data": "2025-11-20T12:00:00.000Z",
-      "HoraInicio": "",
-      "HoraFim": "",
+      "HoraInicio": "22:59",
+      "HoraFim": "04:59",
       "Serviço": "Corretiva",
       "Cliente": "este de lima - jaragua ",
       "Equipe": "Thalisson",
@@ -178,7 +178,7 @@
       "Especificação do Equipamento": "",
       "ID": 1763616204372,
       "Status": "Pendente",
-      "LastModified": 1763690134774
+      "LastModified": 1763690378020
     },
     {
       "Data": "2025-11-18T12:00:00.000Z",
