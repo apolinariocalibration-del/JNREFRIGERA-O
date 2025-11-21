@@ -146,8 +146,8 @@
     },
     {
       "Data": "2025-11-20T12:00:00.000Z",
-      "HoraInicio": "",
-      "HoraFim": "",
+      "HoraInicio": "07:49",
+      "HoraFim": "15:50",
       "Serviço": "Corretiva",
       "Cliente": "teste",
       "Equipe": "Thalisson",
@@ -160,7 +160,7 @@
       "Especificação do Equipamento": "",
       "ID": 1763616204371,
       "Status": "Pendente",
-      "LastModified": 1763686151203
+      "LastModified": 1763686218374
     },
     {
       "Data": "2025-11-18T12:00:00.000Z",
