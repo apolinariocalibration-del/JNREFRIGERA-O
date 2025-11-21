@@ -235,6 +235,24 @@
       "LastModified": 1763740861951
     },
     {
+      "Data": "2025-11-20T12:00:00.000Z",
+      "HoraInicio": "13:02",
+      "HoraFim": "18:02",
+      "Serviço": "Corretiva",
+      "Cliente": "Celia Soltto",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi realizado a substituição do compressor da unidade da câmara De congelados do Quito andar ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204385,
+      "Status": "Pendente",
+      "LastModified": 1763741061523
+    },
+    {
       "Data": "2025-11-19T12:00:00.000Z",
       "HoraInicio": "08:38",
       "HoraFim": "12:38",
