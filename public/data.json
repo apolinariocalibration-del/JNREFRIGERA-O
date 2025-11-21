@@ -1173,6 +1173,14 @@
   ],
   "componentReplacements": [
     {
+      "Data": "2025-11-21T12:00:00.000Z",
+      "Cliente": "Dólma ",
+      "Componente": "Compressor",
+      "OBS": "Câmara de congelados ",
+      "ID": 1763615860217,
+      "LastModified": 1763741524166
+    },
+    {
       "Data": "2025-11-20T12:00:00.000Z",
       "Cliente": "Casa Carne",
       "Componente": "Compressor",
