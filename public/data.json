@@ -217,6 +217,24 @@
       "LastModified": 1763739586509
     },
     {
+      "Data": "2025-11-19T12:00:00.000Z",
+      "HoraInicio": "12:42",
+      "HoraFim": "17:42",
+      "Serviço": "Corretiva",
+      "Cliente": "Casa Carne / Grajaú ",
+      "Equipe": "Thalisson / Gabriel / Davi",
+      "Pendencia": "",
+      "OBS": "Foi identificado vazamento no evaporadores após teste de pressurização na linha ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204381,
+      "Status": "Pendente",
+      "LastModified": 1763739916795
+    },
+    {
       "Data": "2025-11-18T12:00:00.000Z",
       "HoraInicio": "22:48",
       "HoraFim": "",
