@@ -199,6 +199,24 @@
       "LastModified": 1763735974022
     },
     {
+      "Data": "2025-11-19T12:00:00.000Z",
+      "HoraInicio": "08:38",
+      "HoraFim": "12:38",
+      "Serviço": "Corretiva",
+      "Cliente": "Ester de Lima / Padro ",
+      "Equipe": "Thalisson / Gabriel / Davi",
+      "Pendencia": "",
+      "OBS": "Foi realizado substituição da resistência de dreno e troca da tubulação de dreno ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Elétrica e mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204380,
+      "Status": "Pendente",
+      "LastModified": 1763739572342
+    },
+    {
       "Data": "2025-11-18T12:00:00.000Z",
       "HoraInicio": "22:48",
       "HoraFim": "",
