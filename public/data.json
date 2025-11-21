@@ -235,6 +235,24 @@
       "LastModified": 1763737243024
     },
     {
+      "Data": "2025-11-17T12:00:00.000Z",
+      "HoraInicio": "12:28",
+      "HoraFim": "17:29",
+      "Serviço": "Corretiva",
+      "Cliente": "JPL",
+      "Equipe": "Thalisson / Gabriel / Fabio",
+      "Pendencia": "",
+      "OBS": "Lavagem dos 03 condensadores da câmara de congelados ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Elétrica e mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204378,
+      "Status": "Pendente",
+      "LastModified": 1763739005891
+    },
+    {
       "Data": "2025-11-14T12:00:00.000Z",
       "HoraInicio": "12:52",
       "HoraFim": "04:47",
