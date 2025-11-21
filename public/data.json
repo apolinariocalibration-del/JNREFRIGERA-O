@@ -217,6 +217,24 @@
       "LastModified": 1763683914235
     },
     {
+      "Data": "2025-11-18T12:00:00.000Z",
+      "HoraInicio": "08:32",
+      "HoraFim": "12:33",
+      "Serviço": "Corretiva/Preventiva",
+      "Cliente": "Ester de Lima / Santa Cruz ",
+      "Equipe": "Thalisson / Gabriel / Davi",
+      "Pendencia": "",
+      "OBS": "Foi realizado limpeza do condensador da câmara de congelados  e das unidades e vedação do balcão de carne de congelados e\nSubstituição das rodadas da porta de resfriado e reparo na bandeira de dreno da câmara de congelados ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204379,
+      "Status": "Pendente",
+      "LastModified": 1763739412368
+    },
+    {
       "Data": "2025-11-17T12:00:00.000Z",
       "HoraInicio": "",
       "HoraFim": "11:59",
