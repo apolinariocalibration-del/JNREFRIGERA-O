@@ -37,6 +37,24 @@
       "LastModified": 1763735965870
     },
     {
+      "Data": "2025-11-21T12:00:00.000Z",
+      "HoraInicio": "08:00",
+      "HoraFim": "18:08",
+      "Serviço": "Corretiva",
+      "Cliente": "Dólma / Pedro Leopoldo ",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi realizado substituição do compressor da câmara de congelados ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Elétrica e mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204386,
+      "Status": "Pendente",
+      "LastModified": 1763741450076
+    },
+    {
       "Data": "2025-11-20T12:00:00.000Z",
       "HoraInicio": "",
       "HoraFim": "",
