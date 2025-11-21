@@ -235,6 +235,24 @@
       "LastModified": 1763736580329
     },
     {
+      "Data": "2025-11-14T12:00:00.000Z",
+      "HoraInicio": "08:00",
+      "HoraFim": "11:51",
+      "Serviço": "Corretiva",
+      "Cliente": "JJL",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi realizado a substituição da restituição de drenagem da câmara  de congelados ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Elétrica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204375,
+      "Status": "Pendente",
+      "LastModified": 1763736819538
+    },
+    {
       "ID": 11,
       "Data": "2024-07-30T03:00:00.000Z",
       "HoraInicio": "09:00",
