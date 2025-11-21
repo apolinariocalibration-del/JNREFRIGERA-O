@@ -217,6 +217,24 @@
       "LastModified": 1763740339590
     },
     {
+      "Data": "2025-11-20T12:00:00.000Z",
+      "HoraInicio": "11:00",
+      "HoraFim": "12:00",
+      "Serviço": "Corretiva",
+      "Cliente": "Comcarga / Cinco ",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi indetificado que o evaporador estava bloqueado com plástico ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204384,
+      "Status": "Pendente",
+      "LastModified": 1763740845841
+    },
+    {
       "Data": "2025-11-19T12:00:00.000Z",
       "HoraInicio": "08:38",
       "HoraFim": "12:38",
