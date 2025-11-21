@@ -199,6 +199,24 @@
       "LastModified": 1763735974022
     },
     {
+      "Data": "2025-11-20T12:00:00.000Z",
+      "HoraInicio": "08:00",
+      "HoraFim": "12:00",
+      "Serviço": "Corretiva",
+      "Cliente": "JPL",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi realizado adição de gás no sistema e regulagem da válvula de expansão e acompanhamento ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204383,
+      "Status": "Pendente",
+      "LastModified": 1763740324772
+    },
+    {
       "Data": "2025-11-19T12:00:00.000Z",
       "HoraInicio": "08:38",
       "HoraFim": "12:38",
