@@ -253,6 +253,24 @@
       "LastModified": 1763736872964
     },
     {
+      "Data": "2025-11-14T12:00:00.000Z",
+      "HoraInicio": "16:00",
+      "HoraFim": "18:00",
+      "Serviço": "Corretiva",
+      "Cliente": "Dois sabores",
+      "Equipe": "Thalisson / Gabriel / Fabio",
+      "Pendencia": "Vazamento de gás deve ser realizado teste de pressurização na linha ",
+      "OBS": "Vazamento de gás deve ser realizado teste de pressurização na linha ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204376,
+      "Status": "Pendente",
+      "LastModified": 1763737099895
+    },
+    {
       "ID": 11,
       "Data": "2024-07-30T03:00:00.000Z",
       "HoraInicio": "09:00",
