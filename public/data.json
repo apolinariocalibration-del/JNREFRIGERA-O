@@ -271,6 +271,24 @@
       "LastModified": 1763739426635
     },
     {
+      "Data": "2025-11-18T12:00:00.000Z",
+      "HoraInicio": "12:00",
+      "HoraFim": "17:46",
+      "Serviço": "Corretiva/Preventiva",
+      "Cliente": "Flay / Cinco ",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi realizado reparo na badeija de dreno da câmara de resfriado e executado manutenção preventiva nós equipamentos da empresa ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "Elétrica e mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204382,
+      "Status": "Pendente",
+      "LastModified": 1763740172738
+    },
+    {
       "Data": "2025-11-17T12:00:00.000Z",
       "HoraInicio": "",
       "HoraFim": "11:59",
