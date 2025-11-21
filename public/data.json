@@ -1,6 +1,24 @@
 {
   "maintenanceRecords": [
     {
+      "Data": "2025-11-23T12:00:00.000Z",
+      "HoraInicio": "07:41",
+      "HoraFim": "12:41",
+      "Serviço": "Corretiva",
+      "Cliente": "BH Shopping",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "corretiva",
+      "OBS": "",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204370,
+      "Status": "Pendente",
+      "LastModified": 1763685732537
+    },
+    {
       "Data": "2025-11-20T12:00:00.000Z",
       "HoraInicio": "",
       "HoraFim": "",
