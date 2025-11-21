@@ -217,6 +217,24 @@
       "LastModified": 1763683914235
     },
     {
+      "Data": "2025-11-17T12:00:00.000Z",
+      "HoraInicio": "",
+      "HoraFim": "11:59",
+      "Serviço": "Corretiva",
+      "Cliente": "Dois sabores",
+      "Equipe": "Thalisson / Gabriel / Davi",
+      "Pendencia": "",
+      "OBS": "Foi realizado teste de pressurização na linha e identificado vazamento na porca da válvula solenóide ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "mecânica ",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204377,
+      "Status": "Pendente",
+      "LastModified": 1763737243024
+    },
+    {
       "Data": "2025-11-14T12:00:00.000Z",
       "HoraInicio": "12:52",
       "HoraFim": "04:47",
