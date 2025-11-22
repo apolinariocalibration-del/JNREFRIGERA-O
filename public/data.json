@@ -239,7 +239,7 @@
       "HoraInicio": "11:00",
       "HoraFim": "12:00",
       "Serviço": "Corretiva",
-      "Cliente": "Comcarga / Cinco ",
+      "Cliente": "Comcarga Cinco ",
       "Equipe": "Thalisson / Gabriel",
       "Pendencia": "",
       "OBS": "Foi indetificado que o evaporador estava bloqueado com plástico ",
@@ -250,7 +250,7 @@
       "Especificação do Equipamento": "",
       "ID": 1763616204384,
       "Status": "Concluído",
-      "LastModified": 1763740861951
+      "LastModified": 1763777045997
     },
     {
       "Data": "2025-11-20T12:00:00.000Z",
