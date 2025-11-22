@@ -41,7 +41,7 @@
       "HoraInicio": "08:00",
       "HoraFim": "18:08",
       "Serviço": "Corretiva",
-      "Cliente": "Dólma / Pedro Leopoldo ",
+      "Cliente": "Dolma \\ Pedro Leopoldo ",
       "Equipe": "Thalisson / Gabriel",
       "Pendencia": "",
       "OBS": "Foi realizado substituição do compressor da câmara de congelados ",
@@ -52,7 +52,7 @@
       "Especificação do Equipamento": "",
       "ID": 1763616204386,
       "Status": "Concluído",
-      "LastModified": 1763741462541
+      "LastModified": 1763773937755
     },
     {
       "Data": "2025-11-20T12:00:00.000Z",
@@ -465,8 +465,8 @@
       "OBS": "Disjuntor novo instalado.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736171024
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 8,
@@ -483,8 +483,8 @@
       "OBS": "Relé de partida trocado.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736185695
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 9,
@@ -501,8 +501,8 @@
       "OBS": "Motor do ventilador substituído. Sistema voltou a operar normalmente.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736191448
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 1,
@@ -519,8 +519,8 @@
       "OBS": "Tudo ok.",
       "Pendencia": "",
       "Gás": "R404a",
-      "Status": "Excluído",
-      "LastModified": 1763736197732
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 2,
@@ -537,8 +537,8 @@
       "OBS": "Componente substituído.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736110543
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 3,
@@ -555,8 +555,8 @@
       "OBS": "",
       "Pendencia": "Aguardando chegada de novo microventilador.",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736094092
+      "Status": "Pendente",
+      "LastModified": 1763770328197
     },
     {
       "ID": 4,
@@ -573,8 +573,8 @@
       "OBS": "Instalação concluída e sistema em operação.",
       "Pendencia": "",
       "Gás": "R22",
-      "Status": "Excluído",
-      "LastModified": 1763736083403
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 5,
@@ -591,8 +591,8 @@
       "OBS": "Filtros limpos.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736067449
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 12,
@@ -609,8 +609,8 @@
       "OBS": "Tudo certo.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736043177
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 6,
@@ -627,8 +627,8 @@
       "OBS": "Vazamento sanado, carga de gás completa.",
       "Pendencia": "",
       "Gás": "R404a",
-      "Status": "Excluído",
-      "LastModified": 1763736054010
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 7,
@@ -645,8 +645,8 @@
       "OBS": "Contatora com sinais de desgaste.",
       "Pendencia": "Sugerir troca preventiva da contatora.",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736017135
+      "Status": "Pendente",
+      "LastModified": 1763770328197
     },
     {
       "ID": 10,
@@ -663,8 +663,8 @@
       "OBS": "Equipamentos operando dentro dos parâmetros.",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736027122
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 40,
@@ -681,8 +681,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736203216
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 39,
@@ -699,8 +699,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R22",
-      "Status": "Excluído",
-      "LastModified": 1763736208603
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 38,
@@ -717,8 +717,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R22",
-      "Status": "Excluído",
-      "LastModified": 1763736242057
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 37,
@@ -735,8 +735,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736247443
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 36,
@@ -753,8 +753,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736253213
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 35,
@@ -771,8 +771,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736262315
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 34,
@@ -789,8 +789,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736286006
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 33,
@@ -807,8 +807,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736291523
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 32,
@@ -825,8 +825,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736296909
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 31,
@@ -843,8 +843,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736220455
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 30,
@@ -861,8 +861,8 @@
       "OBS": "",
       "Pendencia": "Substituição de R404",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736227908
+      "Status": "Pendente",
+      "LastModified": 1763770328197
     },
     {
       "ID": 26,
@@ -879,8 +879,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736318947
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 27,
@@ -897,8 +897,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R22",
-      "Status": "Excluído",
-      "LastModified": 1763736324982
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 28,
@@ -915,8 +915,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R22",
-      "Status": "Excluído",
-      "LastModified": 1763736330281
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 29,
@@ -933,8 +933,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R134A",
-      "Status": "Excluído",
-      "LastModified": 1763736338817
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 22,
@@ -951,8 +951,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736344034
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 23,
@@ -969,8 +969,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736352172
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 24,
@@ -987,8 +987,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736359109
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 25,
@@ -1005,8 +1005,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736364277
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 20,
@@ -1023,8 +1023,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736369444
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 21,
@@ -1041,8 +1041,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736378229
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 19,
@@ -1059,8 +1059,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736386949
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 18,
@@ -1077,8 +1077,8 @@
       "OBS": "",
       "Pendencia": "Válvula de R40 R22",
       "Gás": "R22",
-      "Status": "Excluído",
-      "LastModified": 1763736392433
+      "Status": "Pendente",
+      "LastModified": 1763770328197
     },
     {
       "ID": 17,
@@ -1095,8 +1095,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736402585
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 15,
@@ -1113,8 +1113,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736407572
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 16,
@@ -1131,8 +1131,8 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736412689
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 14,
@@ -1149,8 +1149,8 @@
       "OBS": "",
       "Pendencia": "Resistências do",
       "Gás": "",
-      "Status": "Excluído",
-      "LastModified": 1763736417974
+      "Status": "Pendente",
+      "LastModified": 1763770328197
     },
     {
       "ID": 13,
@@ -1167,12 +1167,12 @@
       "OBS": "",
       "Pendencia": "",
       "Gás": "R404",
-      "Status": "Excluído",
-      "LastModified": 1763736424326
+      "Status": "Concluído",
+      "LastModified": 1763770328197
     },
     {
       "ID": 1763616204414,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:00",
       "HoraFim": "12:00",
       "Serviço": "Corretiva",
@@ -1190,7 +1190,7 @@
     },
     {
       "ID": 1763616204413,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "08:00",
       "HoraFim": "18:00",
       "Serviço": "Obra/Instalação",
@@ -1208,7 +1208,7 @@
     },
     {
       "ID": 1763616204412,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "08:00",
       "HoraFim": "17:00",
       "Serviço": "Obra/Instalação",
@@ -1226,7 +1226,7 @@
     },
     {
       "ID": 1763616204411,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "14:30",
       "HoraFim": "15:30",
       "Serviço": "Preventiva",
@@ -1244,7 +1244,7 @@
     },
     {
       "ID": 1763616204410,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "13:00",
       "HoraFim": "14:00",
       "Serviço": "Preventiva",
@@ -1262,7 +1262,7 @@
     },
     {
       "ID": 1763616204409,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "10:30",
       "HoraFim": "11:30",
       "Serviço": "Preventiva",
@@ -1280,7 +1280,7 @@
     },
     {
       "ID": 1763616204408,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:00",
       "HoraFim": "10:00",
       "Serviço": "Preventiva",
@@ -1298,7 +1298,7 @@
     },
     {
       "ID": 1763616204407,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "13:30",
       "HoraFim": "15:30",
       "Serviço": "Preventiva",
@@ -1316,7 +1316,7 @@
     },
     {
       "ID": 1763616204406,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "08:30",
       "HoraFim": "12:30",
       "Serviço": "Preventiva",
@@ -1334,7 +1334,7 @@
     },
     {
       "ID": 1763616204405,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "13:00",
       "HoraFim": "17:00",
       "Serviço": "Preventiva",
@@ -1352,7 +1352,7 @@
     },
     {
       "ID": 1763616204404,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:00",
       "HoraFim": "12:00",
       "Serviço": "Preventiva",
@@ -1370,7 +1370,7 @@
     },
     {
       "ID": 1763616204403,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "16:00",
       "HoraFim": "16:30",
       "Serviço": "Corretiva",
@@ -1388,7 +1388,7 @@
     },
     {
       "ID": 1763616204402,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "15:30",
       "HoraFim": "16:00",
       "Serviço": "Corretiva",
@@ -1406,7 +1406,7 @@
     },
     {
       "ID": 1763616204401,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "08:00",
       "HoraFim": "12:00",
       "Serviço": "Obra/Instalação",
@@ -1424,7 +1424,7 @@
     },
     {
       "ID": 1763616204400,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "13:30",
       "HoraFim": "15:00",
       "Serviço": "Corretiva",
@@ -1442,7 +1442,7 @@
     },
     {
       "ID": 1763616204399,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:00",
       "HoraFim": "10:00",
       "Serviço": "Corretiva",
@@ -1460,7 +1460,7 @@
     },
     {
       "ID": 1763616204398,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "16:30",
       "HoraFim": "17:30",
       "Serviço": "Corretiva",
@@ -1478,7 +1478,7 @@
     },
     {
       "ID": 1763616204397,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "14:00",
       "HoraFim": "16:00",
       "Serviço": "Corretiva",
@@ -1496,7 +1496,7 @@
     },
     {
       "ID": 1763616204396,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "10:30",
       "HoraFim": "12:00",
       "Serviço": "Corretiva",
@@ -1514,7 +1514,7 @@
     },
     {
       "ID": 1763616204395,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:00",
       "HoraFim": "18:00",
       "Serviço": "Obra/Instalação",
@@ -1532,7 +1532,7 @@
     },
     {
       "ID": 1763616204394,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "11:00",
       "HoraFim": "13:00",
       "Serviço": "Corretiva",
@@ -1550,7 +1550,7 @@
     },
     {
       "ID": 1763616204393,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:00",
       "HoraFim": "16:30",
       "Serviço": "Obra/Instalação",
@@ -1568,7 +1568,7 @@
     },
     {
       "ID": 1763616204392,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "08:30",
       "HoraFim": "17:00",
       "Serviço": "Obra/Instalação",
@@ -1586,7 +1586,7 @@
     },
     {
       "ID": 1763616204391,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "14:30",
       "HoraFim": "15:30",
       "Serviço": "Corretiva",
@@ -1604,7 +1604,7 @@
     },
     {
       "ID": 1763616204390,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "10:00",
       "HoraFim": "12:00",
       "Serviço": "Corretiva/Preventiva",
@@ -1622,7 +1622,7 @@
     },
     {
       "ID": 1763616204389,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "13:00",
       "HoraFim": "16:00",
       "Serviço": "Preventiva",
@@ -1640,7 +1640,7 @@
     },
     {
       "ID": 1763616204388,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "09:15",
       "HoraFim": "11:00",
       "Serviço": "Corretiva",
@@ -1658,7 +1658,7 @@
     },
     {
       "ID": 1763616204387,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "HoraInicio": "08:00",
       "HoraFim": "10:30",
       "Serviço": "Corretiva",
@@ -1705,7 +1705,7 @@
       "Cliente": "Ffood",
       "Componente": "Disjuntor",
       "OBS": "Disjuntor geral da câmara 02.",
-      "LastModified": 1763714900005
+      "LastModified": 1763770328200
     },
     {
       "ID": 2,
@@ -1713,7 +1713,7 @@
       "Cliente": "Dupain",
       "Componente": "Relé",
       "OBS": "Relé de partida do compressor.",
-      "LastModified": 1763714900005
+      "LastModified": 1763770328200
     },
     {
       "ID": 3,
@@ -1721,7 +1721,7 @@
       "Cliente": "JJL",
       "Componente": "Microventilador",
       "OBS": "Ventilador da unidade condensadora.",
-      "LastModified": 1763714900005
+      "LastModified": 1763770328200
     },
     {
       "ID": 1,
@@ -1729,7 +1729,7 @@
       "Cliente": "Palineli",
       "Componente": "Contatora",
       "OBS": "Substituída durante manutenção corretiva.",
-      "LastModified": 1763714900005
+      "LastModified": 1763770328200
     },
     {
       "ID": 4,
@@ -1737,11 +1737,11 @@
       "Cliente": "Snowfrut",
       "Componente": "Ventilador do Evaporador",
       "OBS": "Troca agendada.",
-      "LastModified": 1763714900005
+      "LastModified": 1763770328200
     },
     {
       "ID": 1763615860223,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "Cliente": "Ester de Lima",
       "Componente": "Compressor",
       "OBS": "Troca de compressor",
@@ -1749,7 +1749,7 @@
     },
     {
       "ID": 1763615860222,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "Cliente": "JJL",
       "Componente": "Ventilador do Condensador",
       "OBS": "Substituição do ventilador do condensador",
@@ -1757,7 +1757,7 @@
     },
     {
       "ID": 1763615860221,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "Cliente": "Casa Carne",
       "Componente": "Disjuntor",
       "OBS": "Substituição de disjuntor do balcão",
@@ -1765,7 +1765,7 @@
     },
     {
       "ID": 1763615860220,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "Cliente": "JJL",
       "Componente": "Resistência de Degelo",
       "OBS": "Troca da resistência de dreno",
@@ -1773,7 +1773,7 @@
     },
     {
       "ID": 1763615860219,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "Cliente": "Ester de Lima",
       "Componente": "Compressor",
       "OBS": "Troca de compressor",
@@ -1781,7 +1781,7 @@
     },
     {
       "ID": 1763615860218,
-      "Data": null,
+      "Data": "1970-01-01T00:00:00.000Z",
       "Cliente": "Snowfrut",
       "Componente": "Resistência de Degelo",
       "OBS": "Substituição da resistência do dreno",
