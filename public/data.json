@@ -41,7 +41,7 @@
       "HoraInicio": "08:00",
       "HoraFim": "18:08",
       "Serviço": "Corretiva",
-      "Cliente": "Dolma",
+      "Cliente": "Dolma PL",
       "Equipe": "Thalisson / Gabriel",
       "Pendencia": "",
       "OBS": "Foi realizado substituição do compressor da câmara de congelados ",
@@ -52,7 +52,7 @@
       "Especificação do Equipamento": "",
       "ID": 1763616204386,
       "Status": "Concluído",
-      "LastModified": 1763776009733
+      "LastModified": 1763776173915
     },
     {
       "Data": "2025-11-20T12:00:00.000Z",
