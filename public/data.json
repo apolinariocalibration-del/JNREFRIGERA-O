@@ -1695,6 +1695,14 @@
   ],
   "componentReplacements": [
     {
+      "Data": "2025-11-24T12:00:00.000Z",
+      "Cliente": "Ester de Lima / Savassi ",
+      "Componente": "Compressor",
+      "OBS": "Gás R22",
+      "ID": 1763615860224,
+      "LastModified": 1764012701895
+    },
+    {
       "Data": "2025-11-21T12:00:00.000Z",
       "Cliente": "Dólma ",
       "Componente": "Compressor",
