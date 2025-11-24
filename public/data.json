@@ -19,6 +19,24 @@
       "LastModified": 1763989854711
     },
     {
+      "Data": "2025-11-24T12:00:00.000Z",
+      "HoraInicio": "13:00",
+      "HoraFim": "16:32",
+      "Serviço": "Corretiva",
+      "Cliente": "Ester de Lima / Savassi ",
+      "Equipe": "Thalisson / Gabriel",
+      "Pendencia": "",
+      "OBS": "Foi realizado substituição do compressor do balcão de carne de resfriado \nGás R22 ",
+      "Gás": "",
+      "Local": "",
+      "Equipamento": "",
+      "Especificação da Manutenção": "",
+      "Especificação do Equipamento": "",
+      "ID": 1763616204416,
+      "Status": "Pendente",
+      "LastModified": 1764012819455
+    },
+    {
       "Data": "2025-11-23T12:00:00.000Z",
       "HoraInicio": "07:41",
       "HoraFim": "12:41",
